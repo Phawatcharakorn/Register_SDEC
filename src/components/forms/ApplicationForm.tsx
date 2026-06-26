@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -9,51 +9,159 @@ import StepIndicator from '@/components/ui/StepIndicator'
 import type { Step } from '@/components/ui/StepIndicator'
 import { applicationSchema, type ApplicationFormValues, KU_SRIRACHA_FACULTIES } from './schema'
 
-// ─── Steps config ─────────────────────────────────────────────────
+const DRAFT_KEY = 'sdec_draft_v1'
+
+function formatPhone(raw: string): string {
+  const d = raw.replace(/\D/g, '').slice(0, 10)
+  if (d.length <= 3) return d
+  if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`
+  return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`
+}
 
 const STEPS: Step[] = [
-  { id: 1, title: 'ข้อมูลส่วนตัว'    },
-  { id: 2, title: 'ข้อมูลติดต่อ'     },
-  { id: 3, title: 'เอกสารแนบ'        },
+  { id: 1, title: 'ข้อมูลส่วนตัว' },
+  { id: 2, title: 'ข้อมูลติดต่อ' },
+  { id: 3, title: 'เอกสารแนบ' },
   { id: 4, title: 'ตรวจสอบและยืนยัน' },
 ]
 
 const STEP_FIELDS: Record<number, (keyof ApplicationFormValues)[]> = {
   1: ['full_name', 'student_id', 'faculty', 'major', 'year', 'gpa'],
-  2: ['phone', 'email'],
+  2: ['phone', 'email', 'motivation'],
   3: ['photo', 'resume'],
   4: [],
 }
 
-// ─── Sub-components ───────────────────────────────────────────────
+// ─── Sidebar ──────────────────────────────────────────────────────
 
-function SectionCard({ children }: { children: React.ReactNode }) {
+function FormSidebar({ savedAt }: { savedAt: string | null }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-card space-y-4">
-      {children}
-    </div>
+    <aside className="hidden lg:flex flex-col gap-4 sticky top-6 self-start">
+      {/* Documents needed */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-card">
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-50 text-ku-green">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </span>
+          เอกสารที่ต้องเตรียม
+        </h3>
+        <ul className="space-y-2.5">
+          {[
+            { icon: '📷', text: 'รูปถ่ายหน้าตรง (.jpg / .png, ≤ 2MB)' },
+            { icon: '📄', text: 'Resume หรือ Portfolio (.pdf, ≤ 5MB)' },
+          ].map(({ icon, text }) => (
+            <li key={text} className="flex items-start gap-2 text-xs text-gray-600 leading-relaxed">
+              <span>{icon}</span>
+              <span>{text}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Qualifications */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-card">
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-50 text-ku-green">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </span>
+          คุณสมบัติผู้สมัคร
+        </h3>
+        <ul className="space-y-2">
+          {[
+            'เป็นนิสิต มก. ศรีราชา',
+            'ทุกชั้นปี ทุกคณะ สมัครได้',
+            'มีความมุ่งมั่นพัฒนาตนเอง',
+            'เข้าร่วมกิจกรรมได้ตามกำหนด',
+          ].map((item) => (
+            <li key={item} className="flex items-start gap-1.5 text-xs text-gray-600">
+              <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Deadline */}
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="flex items-center gap-2 mb-1">
+          <svg className="h-4 w-4 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs font-semibold text-amber-800">วันปิดรับสมัคร</p>
+        </div>
+        <p className="text-sm font-bold text-amber-900">31 กรกฎาคม 2569</p>
+        <p className="mt-1 text-xs text-amber-700">อย่าลืมส่งก่อนหมดเขต!</p>
+      </div>
+
+      {savedAt && (
+        <p className="text-center text-xs text-gray-400">
+          💾 บันทึกอัตโนมัติเมื่อ {savedAt}
+        </p>
+      )}
+    </aside>
   )
 }
+
+// ─── Field wrapper ────────────────────────────────────────────────
 
 function Field({
   label,
   error,
+  success,
   fullWidth,
   children,
+  hint,
 }: {
   label: string
   error?: string
+  success?: boolean
   fullWidth?: boolean
+  hint?: string
   children: React.ReactNode
 }) {
   return (
     <div className={fullWidth ? 'sm:col-span-2' : ''}>
       <label className="form-label">{label}</label>
-      {children}
+      <div className="relative">
+        {children}
+        {!error && success && (
+          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+            <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        )}
+        {error && (
+          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+            <svg className="h-4 w-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        )}
+      </div>
+      {hint && !error && <p className="mt-0.5 text-xs text-gray-400">{hint}</p>}
       {error && <p className="form-error">{error}</p>}
     </div>
   )
 }
+
+function inputCls(error?: string, success?: boolean): string {
+  const base = 'form-input pr-9'
+  if (error)   return `${base} form-input-error`
+  if (success) return `${base} form-input-success`
+  return base
+}
+
+// ─── Review row ───────────────────────────────────────────────────
 
 function ReviewRow({ label, value }: { label: string; value?: string | number | null }) {
   if (!value && value !== 0) return null
@@ -65,11 +173,21 @@ function ReviewRow({ label, value }: { label: string; value?: string | number | 
   )
 }
 
+function SectionCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-card space-y-4">
+      {children}
+    </div>
+  )
+}
+
 // ─── Main form ────────────────────────────────────────────────────
 
 export default function ApplicationForm() {
   const [currentStep, setCurrentStep] = useState(1)
-  const [success, setSuccess] = useState<{ referenceId: string } | null>(null)
+  const [success, setSuccess]         = useState<{ referenceId: string } | null>(null)
+  const [savedAt, setSavedAt]         = useState<string | null>(null)
+  const intervalRef                   = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const {
     register,
@@ -77,7 +195,9 @@ export default function ApplicationForm() {
     handleSubmit,
     trigger,
     watch,
-    formState: { errors, isSubmitting },
+    getValues,
+    reset,
+    formState: { errors, isSubmitting, touchedFields },
   } = useForm<ApplicationFormValues>({
     resolver: zodResolver(applicationSchema),
     mode: 'onTouched',
@@ -85,7 +205,50 @@ export default function ApplicationForm() {
 
   const watchAll = watch()
 
-  // Navigate forward — validate current step fields first
+  const isOk = (name: keyof ApplicationFormValues) =>
+    !!touchedFields[name] && !errors[name]
+
+  // Load draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY)
+      if (!raw) return
+      const draft = JSON.parse(raw)
+      const { savedAt: ts, ...fields } = draft
+      reset(fields, { keepDefaultValues: true })
+      if (ts) setSavedAt(ts)
+    } catch { /* ignore corrupt draft */ }
+  }, [reset])
+
+  const saveDraft = useCallback(() => {
+    const v = getValues()
+    const now = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      full_name:  v.full_name,
+      student_id: v.student_id,
+      faculty:    v.faculty,
+      major:      v.major,
+      year:       v.year,
+      gpa:        v.gpa,
+      phone:      v.phone,
+      email:      v.email,
+      motivation: v.motivation,
+      savedAt:    now,
+    }))
+    setSavedAt(now)
+  }, [getValues])
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    intervalRef.current = setInterval(saveDraft, 30_000)
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+  }, [saveDraft])
+
+  const handleSaveDraft = () => {
+    saveDraft()
+    toast.success('บันทึกร่างแล้ว')
+  }
+
   const goNext = async () => {
     const fields = STEP_FIELDS[currentStep]
     const valid  = fields.length === 0 || await trigger(fields)
@@ -118,6 +281,7 @@ export default function ApplicationForm() {
         return
       }
 
+      localStorage.removeItem(DRAFT_KEY)
       setSuccess({ referenceId: json.referenceId })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch {
@@ -149,200 +313,304 @@ export default function ApplicationForm() {
     )
   }
 
-  // ── Form ──────────────────────────────────────────────────────
+  // ── Form layout ───────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      {/* Step Indicator */}
-      <div className="rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-card">
-        <StepIndicator steps={STEPS} currentStep={currentStep} />
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_256px]">
+
+      {/* ── Main column ──────────────────────────────────────── */}
+      <div className="space-y-6 min-w-0">
+        {/* Step Indicator */}
+        <div className="rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-card">
+          <StepIndicator steps={STEPS} currentStep={currentStep} />
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+
+          {/* ── Step 1: ข้อมูลส่วนตัว ──────────────────────── */}
+          {currentStep === 1 && (
+            <SectionCard>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+                <Field label="ชื่อ-นามสกุล *" error={errors.full_name?.message} success={isOk('full_name')} fullWidth>
+                  <input
+                    {...register('full_name')}
+                    type="text"
+                    placeholder="เช่น นายเกษตร ศาสตร์"
+                    className={inputCls(errors.full_name?.message, isOk('full_name'))}
+                  />
+                </Field>
+
+                <Field label="รหัสนิสิต *" error={errors.student_id?.message} success={isOk('student_id')}
+                  hint="ตัวเลข 10 หลัก">
+                  <input
+                    {...register('student_id')}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    placeholder="0000000000"
+                    className={inputCls(errors.student_id?.message, isOk('student_id'))}
+                  />
+                </Field>
+
+                <Field label="เกรดเฉลี่ยสะสม (GPA) *" error={errors.gpa?.message} success={isOk('gpa')}
+                  hint="ระหว่าง 0.00 – 4.00">
+                  <input
+                    {...register('gpa')}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="4"
+                    placeholder="0.00"
+                    onKeyDown={(e) => {
+                      // block e/E/+/-
+                      if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault()
+                    }}
+                    onBlur={(e) => {
+                      // clamp on blur
+                      const v = parseFloat(e.target.value)
+                      if (!isNaN(v)) {
+                        e.target.value = String(Math.min(4, Math.max(0, v)))
+                      }
+                    }}
+                    className={inputCls(errors.gpa?.message, isOk('gpa'))}
+                  />
+                </Field>
+
+                <Field label="คณะ *" error={errors.faculty?.message} success={isOk('faculty')} fullWidth>
+                  <select
+                    {...register('faculty')}
+                    className={inputCls(errors.faculty?.message, isOk('faculty'))}
+                  >
+                    <option value="">เลือกคณะ</option>
+                    {KU_SRIRACHA_FACULTIES.map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="สาขาวิชา *" error={errors.major?.message} success={isOk('major')}>
+                  <input
+                    {...register('major')}
+                    type="text"
+                    placeholder="เช่น วิศวกรรมคอมพิวเตอร์"
+                    className={inputCls(errors.major?.message, isOk('major'))}
+                  />
+                </Field>
+
+                <Field label="ชั้นปี *" error={errors.year?.message} success={isOk('year')}>
+                  <select
+                    {...register('year')}
+                    className={inputCls(errors.year?.message, isOk('year'))}
+                  >
+                    <option value="">เลือกชั้นปี</option>
+                    {[1, 2, 3, 4].map((y) => (
+                      <option key={y} value={y}>ปีที่ {y}</option>
+                    ))}
+                  </select>
+                </Field>
+
+              </div>
+            </SectionCard>
+          )}
+
+          {/* ── Step 2: ข้อมูลติดต่อ ────────────────────────── */}
+          {currentStep === 2 && (
+            <SectionCard>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+                <Field label="เบอร์โทรศัพท์ *" error={errors.phone?.message} success={isOk('phone')}
+                  hint="รูปแบบ 0XX-XXX-XXXX">
+                  <Controller
+                    name="phone"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        type="tel"
+                        placeholder="0XX-XXX-XXXX"
+                        value={field.value ?? ''}
+                        onChange={(e) => field.onChange(formatPhone(e.target.value))}
+                        onBlur={field.onBlur}
+                        className={inputCls(errors.phone?.message, isOk('phone'))}
+                      />
+                    )}
+                  />
+                </Field>
+
+                <Field label="อีเมล *" error={errors.email?.message} success={isOk('email')}>
+                  <input
+                    {...register('email')}
+                    type="email"
+                    placeholder="example@ku.th"
+                    className={inputCls(errors.email?.message, isOk('email'))}
+                  />
+                </Field>
+
+                <Field label="เหตุผลที่อยากเข้าร่วม SDEC *" error={errors.motivation?.message}
+                  success={isOk('motivation')} fullWidth>
+                  <textarea
+                    {...register('motivation')}
+                    rows={6}
+                    placeholder="กรุณาอธิบายเหตุผล แรงจูงใจ และสิ่งที่คาดหวังจากการเข้าร่วม SDEC อย่างน้อย 50 ตัวอักษร"
+                    className={`form-input resize-none ${errors.motivation ? 'form-input-error' : isOk('motivation') ? 'form-input-success' : ''}`}
+                  />
+                  <div className="mt-1 flex justify-between">
+                    {errors.motivation
+                      ? <p className="form-error">{errors.motivation.message}</p>
+                      : <span />
+                    }
+                    <p className={`text-xs ${
+                      (watchAll.motivation?.length ?? 0) < 50 ? 'text-gray-400' : 'text-green-600'
+                    }`}>
+                      {(watchAll.motivation ?? '').length} / 3,000
+                    </p>
+                  </div>
+                </Field>
+
+              </div>
+            </SectionCard>
+          )}
+
+          {/* ── Step 3: เอกสารแนบ ───────────────────────────── */}
+          {currentStep === 3 && (
+            <SectionCard>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <Controller
+                  name="photo"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FileUpload
+                      id="photo"
+                      accept="image/jpeg,image/png"
+                      maxSizeBytes={2 * 1024 * 1024}
+                      label="รูปถ่าย *"
+                      hint=".jpg, .png ขนาดไม่เกิน 2MB"
+                      previewType="image"
+                      onChange={field.onChange}
+                      error={fieldState.error?.message}
+                    />
+                  )}
+                />
+                <Controller
+                  name="resume"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <FileUpload
+                      id="resume"
+                      accept="application/pdf"
+                      maxSizeBytes={5 * 1024 * 1024}
+                      label="Resume / Portfolio *"
+                      hint=".pdf ขนาดไม่เกิน 5MB"
+                      previewType="document"
+                      onChange={field.onChange}
+                      error={fieldState.error?.message}
+                    />
+                  )}
+                />
+              </div>
+            </SectionCard>
+          )}
+
+          {/* ── Step 4: ตรวจสอบและยืนยัน ──────────────────── */}
+          {currentStep === 4 && (
+            <SectionCard>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">ตรวจสอบข้อมูลก่อนส่งใบสมัคร</h3>
+
+              <div className="rounded-lg bg-gray-50 px-4 py-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">ข้อมูลส่วนตัว</p>
+                <ReviewRow label="ชื่อ-นามสกุล" value={watchAll.full_name} />
+                <ReviewRow label="รหัสนิสิต"    value={watchAll.student_id} />
+                <ReviewRow label="คณะ"          value={watchAll.faculty} />
+                <ReviewRow label="สาขาวิชา"     value={watchAll.major} />
+                <ReviewRow label="ชั้นปี"       value={watchAll.year ? `ปีที่ ${watchAll.year}` : undefined} />
+                <ReviewRow label="เกรดเฉลี่ย"   value={watchAll.gpa ? Number(watchAll.gpa).toFixed(2) : undefined} />
+              </div>
+
+              <div className="rounded-lg bg-gray-50 px-4 py-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">ช่องทางติดต่อ</p>
+                <ReviewRow label="เบอร์โทรศัพท์" value={watchAll.phone} />
+                <ReviewRow label="อีเมล"         value={watchAll.email} />
+              </div>
+
+              <div className="rounded-lg bg-gray-50 px-4 py-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">เอกสารแนบ</p>
+                <ReviewRow label="รูปถ่าย" value={watchAll.photo?.name ?? 'ยังไม่ได้อัปโหลด'} />
+                <ReviewRow label="Resume"  value={watchAll.resume?.name ?? 'ยังไม่ได้อัปโหลด'} />
+              </div>
+
+              <div className="rounded-lg bg-gray-50 px-4 py-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">แรงจูงใจ</p>
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-4">
+                  {watchAll.motivation || <span className="italic text-gray-400">ยังไม่ได้กรอก</span>}
+                </p>
+              </div>
+
+              <p className="text-center text-xs text-gray-400">
+                กรุณาตรวจสอบข้อมูลให้ครบถ้วนก่อนกดส่งใบสมัคร
+              </p>
+            </SectionCard>
+          )}
+
+          {/* ── Navigation ──────────────────────────────────── */}
+          <div className="mt-5 flex items-center justify-between gap-3">
+            {currentStep > 1 ? (
+              <button type="button" onClick={goBack} className="btn-secondary">
+                ← ย้อนกลับ
+              </button>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex items-center gap-2">
+              {/* Save draft visible on steps 1-3 */}
+              {currentStep < 4 && (
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  className="btn-secondary gap-1.5"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                  บันทึกร่าง
+                </button>
+              )}
+
+              {currentStep < STEPS.length ? (
+                <button type="button" onClick={goNext} className="btn-primary">
+                  ถัดไป →
+                </button>
+              ) : (
+                <button type="submit" disabled={isSubmitting} className="btn-primary">
+                  {isSubmitting ? (
+                    <>
+                      <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      กำลังส่งใบสมัคร...
+                    </>
+                  ) : (
+                    'ยืนยันและส่งใบสมัคร ✓'
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Mobile auto-save status */}
+          {savedAt && (
+            <p className="mt-3 text-center text-xs text-gray-400 lg:hidden">
+              💾 บันทึกอัตโนมัติเมื่อ {savedAt}
+            </p>
+          )}
+
+        </form>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      {/* ── Sidebar ──────────────────────────────────────────── */}
+      <FormSidebar savedAt={savedAt} />
 
-        {/* ── Step 1: ข้อมูลส่วนตัว ─────────────────────────── */}
-        {currentStep === 1 && (
-          <SectionCard>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="ชื่อ-นามสกุล *" error={errors.full_name?.message} fullWidth>
-                <input {...register('full_name')} type="text" placeholder="เช่น นายเกษตร ศาสตร์"
-                  className={`form-input ${errors.full_name ? 'form-input-error' : ''}`} />
-              </Field>
-
-              <Field label="รหัสนิสิต *" error={errors.student_id?.message}>
-                <input {...register('student_id')} type="text" inputMode="numeric" maxLength={10}
-                  placeholder="0000000000"
-                  className={`form-input ${errors.student_id ? 'form-input-error' : ''}`} />
-              </Field>
-
-              <Field label="เกรดเฉลี่ยสะสม (GPA) *" error={errors.gpa?.message}>
-                <input {...register('gpa')} type="number" step="0.01" min="0" max="4" placeholder="0.00"
-                  className={`form-input ${errors.gpa ? 'form-input-error' : ''}`} />
-              </Field>
-
-              <Field label="คณะ *" error={errors.faculty?.message} fullWidth>
-                <select {...register('faculty')}
-                  className={`form-input ${errors.faculty ? 'form-input-error' : ''}`}>
-                  <option value="">เลือกคณะ</option>
-                  {KU_SRIRACHA_FACULTIES.map((f) => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field label="สาขาวิชา *" error={errors.major?.message}>
-                <input {...register('major')} type="text" placeholder="เช่น วิศวกรรมคอมพิวเตอร์"
-                  className={`form-input ${errors.major ? 'form-input-error' : ''}`} />
-              </Field>
-
-              <Field label="ชั้นปี *" error={errors.year?.message}>
-                <select {...register('year')}
-                  className={`form-input ${errors.year ? 'form-input-error' : ''}`}>
-                  <option value="">เลือกชั้นปี</option>
-                  {[1, 2, 3, 4].map((y) => (
-                    <option key={y} value={y}>ปีที่ {y}</option>
-                  ))}
-                </select>
-              </Field>
-            </div>
-          </SectionCard>
-        )}
-
-        {/* ── Step 2: ข้อมูลติดต่อ ──────────────────────────── */}
-        {currentStep === 2 && (
-          <SectionCard>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="เบอร์โทรศัพท์ *" error={errors.phone?.message}>
-                <input {...register('phone')} type="tel" placeholder="08X-XXX-XXXX"
-                  className={`form-input ${errors.phone ? 'form-input-error' : ''}`} />
-              </Field>
-
-              <Field label="อีเมล *" error={errors.email?.message}>
-                <input {...register('email')} type="email" placeholder="example@ku.th"
-                  className={`form-input ${errors.email ? 'form-input-error' : ''}`} />
-              </Field>
-
-              <Field label="เหตุผลที่อยากเข้าร่วม SDEC *" error={errors.motivation?.message} fullWidth>
-                <textarea {...register('motivation')} rows={5}
-                  placeholder="กรุณาอธิบายเหตุผล แรงจูงใจ และสิ่งที่คาดหวังจากการเข้าร่วม SDEC อย่างน้อย 50 ตัวอักษร"
-                  className={`form-input resize-none ${errors.motivation ? 'form-input-error' : ''}`} />
-                <p className="mt-1 text-right text-xs text-gray-400">
-                  {(watchAll.motivation ?? '').length} / 3,000
-                </p>
-              </Field>
-            </div>
-          </SectionCard>
-        )}
-
-        {/* ── Step 3: เอกสารแนบ ─────────────────────────────── */}
-        {currentStep === 3 && (
-          <SectionCard>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <Controller
-                name="photo"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <FileUpload
-                    id="photo"
-                    accept="image/jpeg,image/png"
-                    maxSizeBytes={2 * 1024 * 1024}
-                    label="รูปถ่าย *"
-                    hint=".jpg, .png ขนาดไม่เกิน 2MB"
-                    previewType="image"
-                    onChange={field.onChange}
-                    error={fieldState.error?.message}
-                  />
-                )}
-              />
-
-              <Controller
-                name="resume"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <FileUpload
-                    id="resume"
-                    accept="application/pdf"
-                    maxSizeBytes={5 * 1024 * 1024}
-                    label="Resume / Portfolio *"
-                    hint=".pdf ขนาดไม่เกิน 5MB"
-                    previewType="document"
-                    onChange={field.onChange}
-                    error={fieldState.error?.message}
-                  />
-                )}
-              />
-            </div>
-          </SectionCard>
-        )}
-
-        {/* ── Step 4: ตรวจสอบและยืนยัน ─────────────────────── */}
-        {currentStep === 4 && (
-          <SectionCard>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">ตรวจสอบข้อมูลก่อนส่งใบสมัคร</h3>
-
-            <div className="rounded-lg bg-gray-50 px-4 py-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">ข้อมูลส่วนตัว</p>
-              <ReviewRow label="ชื่อ-นามสกุล"  value={watchAll.full_name} />
-              <ReviewRow label="รหัสนิสิต"      value={watchAll.student_id} />
-              <ReviewRow label="คณะ"            value={watchAll.faculty} />
-              <ReviewRow label="สาขาวิชา"       value={watchAll.major} />
-              <ReviewRow label="ชั้นปี"         value={watchAll.year ? `ปีที่ ${watchAll.year}` : undefined} />
-              <ReviewRow label="เกรดเฉลี่ย"     value={watchAll.gpa ? Number(watchAll.gpa).toFixed(2) : undefined} />
-            </div>
-
-            <div className="rounded-lg bg-gray-50 px-4 py-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">ช่องทางติดต่อ</p>
-              <ReviewRow label="เบอร์โทรศัพท์" value={watchAll.phone} />
-              <ReviewRow label="อีเมล"          value={watchAll.email} />
-            </div>
-
-            <div className="rounded-lg bg-gray-50 px-4 py-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">เอกสารแนบ</p>
-              <ReviewRow label="รูปถ่าย"  value={watchAll.photo?.name ?? 'ยังไม่ได้อัปโหลด'} />
-              <ReviewRow label="Resume"   value={watchAll.resume?.name ?? 'ยังไม่ได้อัปโหลด'} />
-            </div>
-
-            <div className="rounded-lg bg-gray-50 px-4 py-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">แรงจูงใจ</p>
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-4">
-                {watchAll.motivation || <span className="text-gray-400 italic">ยังไม่ได้กรอก</span>}
-              </p>
-            </div>
-
-            <p className="text-xs text-gray-400 text-center mt-2">
-              กรุณาตรวจสอบข้อมูลให้ครบถ้วนก่อนกดส่งใบสมัคร
-            </p>
-          </SectionCard>
-        )}
-
-        {/* ── Navigation buttons ────────────────────────────── */}
-        <div className="mt-5 flex items-center justify-between gap-3">
-          {currentStep > 1 ? (
-            <button type="button" onClick={goBack} className="btn-secondary">
-              ← ย้อนกลับ
-            </button>
-          ) : (
-            <div />
-          )}
-
-          {currentStep < STEPS.length ? (
-            <button type="button" onClick={goNext} className="btn-primary">
-              ถัดไป →
-            </button>
-          ) : (
-            <button type="submit" disabled={isSubmitting} className="btn-primary">
-              {isSubmitting ? (
-                <>
-                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  กำลังส่งใบสมัคร...
-                </>
-              ) : 'ยืนยันและส่งใบสมัคร ✓'}
-            </button>
-          )}
-        </div>
-      </form>
     </div>
   )
 }
