@@ -6,10 +6,10 @@ const config: Config = {
     extend: {
       colors: {
         ku: {
-          green:       '#1B5E20',
-          'green-600': '#2E7D32',
-          'green-50':  '#E8F5E9',
-          'green-100': '#C8E6C9',
+          green:       '#1565C0',
+          'green-600': '#1976D2',
+          'green-50':  '#E3F2FD',
+          'green-100': '#BBDEFB',
           gold:        '#FFD600',
           'gold-50':   '#FFFDE7',
         },

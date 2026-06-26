@@ -4,21 +4,29 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#F9FAFB] pb-16">
       {/* Header */}
-      <header className="bg-ku-green text-white">
-        <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+      <header className="relative overflow-hidden bg-ku-green text-white">
+        {/* Banner image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-30"
+          style={{ backgroundImage: "url('/sdec-banner.jpg')" }}
+        />
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-ku-green/70" />
+
+        <div className="relative mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <div className="flex items-center gap-4">
             {/* Logo mark */}
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-ku-gold font-bold text-ku-green text-lg leading-none select-none">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-ku-gold font-bold text-ku-green text-lg leading-none select-none shadow-lg">
               SDEC
             </div>
             <div>
-              <p className="text-xs font-medium text-green-300 tracking-wide uppercase">
+              <p className="text-xs font-medium text-blue-200 tracking-widest uppercase">
                 มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตศรีราชา
               </p>
-              <h1 className="text-xl font-bold leading-tight">
+              <h1 className="text-2xl font-bold leading-tight">
                 ศูนย์พัฒนานิสิตสู่ความเป็นเลิศ
               </h1>
-              <p className="text-sm text-green-300">Student Development and Excellence Center</p>
+              <p className="text-sm text-blue-200">Student Development and Excellence Center</p>
             </div>
           </div>
         </div>
