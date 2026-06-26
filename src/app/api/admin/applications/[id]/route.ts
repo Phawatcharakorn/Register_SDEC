@@ -12,6 +12,7 @@ import type {
   UpdateApplicationBody,
   UpdateApplicationResponse,
 } from '@/types/api'
+import type { Application } from '@/types/database'
 
 const SIGNED_URL_EXPIRES = 60 * 60   // 1 hour
 
@@ -27,14 +28,16 @@ export const GET = withErrorHandler(async (_req, ctx) => {
 
   const supabase = createAdminClient()
 
-  const { data, error } = await supabase
+  const { data: rawData, error } = await supabase
     .from('applications')
     .select('*')
     .eq('id', id)
     .maybeSingle()
 
   if (error) throw error
-  if (!data) return notFound('Application not found')
+  if (!rawData) return notFound('Application not found')
+
+  const data = rawData as unknown as Application
 
   // Generate signed URL for the private resume bucket
   let resumeSignedUrl: string | null = null
