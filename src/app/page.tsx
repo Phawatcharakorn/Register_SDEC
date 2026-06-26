@@ -8,7 +8,7 @@ export default function HomePage() {
         {/* Banner image */}
         <div
           className="absolute inset-0 bg-cover bg-center opacity-30"
-          style={{ backgroundImage: "url('/sdec-banner.jpg')" }}
+          style={{ backgroundImage: "url('/sdec-banner.png')" }}
         />
         {/* Dark overlay for readability */}
         <div className="absolute inset-0 bg-ku-green/70" />
