@@ -34,9 +34,13 @@ export async function createSessionClient() {
 /**
  * Service-role admin client for Route Handlers that need to bypass RLS.
  * NEVER expose this to the browser. Only use in server-side code.
+ * Note: untyped intentionally — types are applied at call sites via explicit casts.
+ * Replace with `createSupabaseClient<Database>(...)` once types are auto-generated
+ * via `npx supabase gen types typescript`.
  */
 export function createAdminClient() {
-  return createSupabaseClient<Database>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return createSupabaseClient<any>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {

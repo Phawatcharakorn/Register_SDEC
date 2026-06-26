@@ -90,7 +90,8 @@ export const PATCH = withErrorHandler(async (req, ctx) => {
 
   const supabase = createAdminClient()
 
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: rawUpdate, error } = await (supabase as any)
     .from('applications')
     .update({
       status:     body.status,
@@ -101,7 +102,9 @@ export const PATCH = withErrorHandler(async (req, ctx) => {
     .maybeSingle()
 
   if (error) throw error
-  if (!data) return notFound('Application not found')
+  if (!rawUpdate) return notFound('Application not found')
+
+  const data = rawUpdate as Pick<Application, 'id' | 'status' | 'admin_note'>
 
   return ok<UpdateApplicationResponse>({ success: true, data })
 })
