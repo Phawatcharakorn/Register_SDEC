@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import ApplicationForm from '@/components/forms/ApplicationForm'
+import HeroSection from '@/components/HeroSection'
 
 export default function HomePage() {
   return (
@@ -68,8 +69,13 @@ export default function HomePage() {
 
       {/* Form area */}
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        {/* Page title */}
+        {/* Hero Section */}
         <div className="mb-8">
+          <HeroSection />
+        </div>
+
+        {/* Page title */}
+        <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900">สมัครเข้าร่วม SDEC</h2>
           <p className="mt-1 text-sm text-gray-500">
             กรุณากรอกข้อมูลให้ครบถ้วนและตรวจสอบความถูกต้องก่อนกดส่งใบสมัคร
