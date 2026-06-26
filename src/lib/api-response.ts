@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server'
 import type { ApiError } from '@/types/api'
 
-type JsonValue = Record<string, unknown> | unknown[]
-
 /** 200 OK */
-export function ok<T extends JsonValue>(data: T) {
+export function ok<T extends object>(data: T) {
   return NextResponse.json(data, { status: 200 })
 }
 
 /** 201 Created */
-export function created<T extends JsonValue>(data: T) {
+export function created<T extends object>(data: T) {
   return NextResponse.json(data, { status: 201 })
 }
 
