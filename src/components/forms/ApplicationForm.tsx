@@ -5,23 +5,32 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import FileUpload from '@/components/ui/FileUpload'
+import StepIndicator from '@/components/ui/StepIndicator'
+import type { Step } from '@/components/ui/StepIndicator'
 import { applicationSchema, type ApplicationFormValues, KU_SRIRACHA_FACULTIES } from './schema'
 
-interface SuccessState {
-  referenceId: string
+// ─── Steps config ─────────────────────────────────────────────────
+
+const STEPS: Step[] = [
+  { id: 1, title: 'ข้อมูลส่วนตัว'    },
+  { id: 2, title: 'ข้อมูลติดต่อ'     },
+  { id: 3, title: 'เอกสารแนบ'        },
+  { id: 4, title: 'ตรวจสอบและยืนยัน' },
+]
+
+const STEP_FIELDS: Record<number, (keyof ApplicationFormValues)[]> = {
+  1: ['full_name', 'student_id', 'faculty', 'major', 'year', 'gpa'],
+  2: ['phone', 'email'],
+  3: ['photo', 'resume'],
+  4: [],
 }
 
-// ─── Sub-components ──────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-card overflow-hidden">
-      <div className="border-l-4 border-ku-green px-6 py-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-ku-green">{title}</h2>
-      </div>
-      <div className="px-6 pb-6 pt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {children}
-      </div>
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-card space-y-4">
+      {children}
     </div>
   )
 }
@@ -46,22 +55,44 @@ function Field({
   )
 }
 
+function ReviewRow({ label, value }: { label: string; value?: string | number | null }) {
+  if (!value && value !== 0) return null
+  return (
+    <div className="flex gap-3 py-2 border-b border-gray-50 last:border-0">
+      <span className="w-36 shrink-0 text-xs font-medium text-gray-400">{label}</span>
+      <span className="text-sm text-gray-800">{value}</span>
+    </div>
+  )
+}
+
 // ─── Main form ────────────────────────────────────────────────────
 
 export default function ApplicationForm() {
-  const [success, setSuccess] = useState<SuccessState | null>(null)
+  const [currentStep, setCurrentStep] = useState(1)
+  const [success, setSuccess] = useState<{ referenceId: string } | null>(null)
 
   const {
     register,
     control,
     handleSubmit,
+    trigger,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<ApplicationFormValues>({
     resolver: zodResolver(applicationSchema),
+    mode: 'onTouched',
   })
 
-  const motivationValue = watch('motivation') ?? ''
+  const watchAll = watch()
+
+  // Navigate forward — validate current step fields first
+  const goNext = async () => {
+    const fields = STEP_FIELDS[currentStep]
+    const valid  = fields.length === 0 || await trigger(fields)
+    if (valid) setCurrentStep((s) => Math.min(s + 1, STEPS.length))
+  }
+
+  const goBack = () => setCurrentStep((s) => Math.max(s - 1, 1))
 
   const onSubmit = async (data: ApplicationFormValues) => {
     const formData = new FormData()
@@ -78,17 +109,12 @@ export default function ApplicationForm() {
     formData.append('resume',     data.resume)
 
     try {
-      const res = await fetch('/api/apply', { method: 'POST', body: formData })
+      const res  = await fetch('/api/apply', { method: 'POST', body: formData })
       const json = await res.json()
 
       if (!res.ok) {
-        if (res.status === 409) {
-          toast.error('รหัสนิสิตนี้มีการสมัครไปแล้ว กรุณาตรวจสอบข้อมูล')
-        } else if (json.details) {
-          toast.error('กรุณาตรวจสอบข้อมูลในฟอร์มอีกครั้ง')
-        } else {
-          toast.error(json.error ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่')
-        }
+        if (res.status === 409) toast.error('รหัสนิสิตนี้มีการสมัครไปแล้ว')
+        else toast.error(json.error ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่')
         return
       }
 
@@ -99,7 +125,7 @@ export default function ApplicationForm() {
     }
   }
 
-  // ── Success state ─────────────────────────────────────────────
+  // ── Success ────────────────────────────────────────────────────
   if (success) {
     return (
       <div className="rounded-xl border border-green-200 bg-green-50 p-8 text-center shadow-card">
@@ -118,192 +144,205 @@ export default function ApplicationForm() {
             {success.referenceId}
           </p>
         </div>
-        <p className="mt-4 text-xs text-gray-400">
-          กรุณาเก็บเลขที่อ้างอิงนี้ไว้สำหรับติดตามสถานะ
-        </p>
+        <p className="mt-4 text-xs text-gray-400">กรุณาเก็บเลขที่อ้างอิงนี้ไว้สำหรับติดตามสถานะ</p>
       </div>
     )
   }
 
   // ── Form ──────────────────────────────────────────────────────
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
-      {/* ข้อมูลส่วนตัว */}
-      <SectionCard title="ข้อมูลส่วนตัว">
-        <Field label="ชื่อ-นามสกุล *" error={errors.full_name?.message} fullWidth>
-          <input
-            {...register('full_name')}
-            type="text"
-            placeholder="เช่น นายเกษตร ศาสตร์"
-            className={`form-input ${errors.full_name ? 'form-input-error' : ''}`}
-          />
-        </Field>
-
-        <Field label="รหัสนิสิต *" error={errors.student_id?.message}>
-          <input
-            {...register('student_id')}
-            type="text"
-            inputMode="numeric"
-            maxLength={10}
-            placeholder="0000000000"
-            className={`form-input ${errors.student_id ? 'form-input-error' : ''}`}
-          />
-        </Field>
-
-        <Field label="เกรดเฉลี่ยสะสม (GPA) *" error={errors.gpa?.message}>
-          <input
-            {...register('gpa')}
-            type="number"
-            step="0.01"
-            min="0"
-            max="4"
-            placeholder="0.00"
-            className={`form-input ${errors.gpa ? 'form-input-error' : ''}`}
-          />
-        </Field>
-
-        <Field label="คณะ *" error={errors.faculty?.message} fullWidth>
-          <select
-            {...register('faculty')}
-            className={`form-input ${errors.faculty ? 'form-input-error' : ''}`}
-          >
-            <option value="">เลือกคณะ</option>
-            {KU_SRIRACHA_FACULTIES.map((f) => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label="สาขาวิชา *" error={errors.major?.message}>
-          <input
-            {...register('major')}
-            type="text"
-            placeholder="เช่น วิศวกรรมคอมพิวเตอร์"
-            className={`form-input ${errors.major ? 'form-input-error' : ''}`}
-          />
-        </Field>
-
-        <Field label="ชั้นปี *" error={errors.year?.message}>
-          <select
-            {...register('year')}
-            className={`form-input ${errors.year ? 'form-input-error' : ''}`}
-          >
-            <option value="">เลือกชั้นปี</option>
-            {[1, 2, 3, 4].map((y) => (
-              <option key={y} value={y}>ปีที่ {y}</option>
-            ))}
-          </select>
-        </Field>
-      </SectionCard>
-
-      {/* ช่องทางติดต่อ */}
-      <SectionCard title="ช่องทางติดต่อ">
-        <Field label="เบอร์โทรศัพท์ *" error={errors.phone?.message}>
-          <input
-            {...register('phone')}
-            type="tel"
-            placeholder="08X-XXX-XXXX"
-            className={`form-input ${errors.phone ? 'form-input-error' : ''}`}
-          />
-        </Field>
-
-        <Field label="อีเมล *" error={errors.email?.message}>
-          <input
-            {...register('email')}
-            type="email"
-            placeholder="example@ku.th"
-            className={`form-input ${errors.email ? 'form-input-error' : ''}`}
-          />
-        </Field>
-      </SectionCard>
-
-      {/* อัปโหลด */}
-      <div className="rounded-xl border border-gray-200 bg-white shadow-card overflow-hidden">
-        <div className="border-l-4 border-ku-green px-6 py-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ku-green">อัปโหลดเอกสาร</h2>
-        </div>
-        <div className="px-6 pb-6 pt-2 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <Controller
-            name="photo"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FileUpload
-                id="photo"
-                accept="image/jpeg,image/png"
-                maxSizeBytes={2 * 1024 * 1024}
-                label="รูปถ่าย *"
-                hint=".jpg, .png ขนาดไม่เกิน 2MB"
-                previewType="image"
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-
-          <Controller
-            name="resume"
-            control={control}
-            render={({ field, fieldState }) => (
-              <FileUpload
-                id="resume"
-                accept="application/pdf"
-                maxSizeBytes={5 * 1024 * 1024}
-                label="Resume / Portfolio *"
-                hint=".pdf ขนาดไม่เกิน 5MB"
-                previewType="document"
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-              />
-            )}
-          />
-        </div>
+    <div className="space-y-6">
+      {/* Step Indicator */}
+      <div className="rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-card">
+        <StepIndicator steps={STEPS} currentStep={currentStep} />
       </div>
 
-      {/* แรงจูงใจ */}
-      <div className="rounded-xl border border-gray-200 bg-white shadow-card overflow-hidden">
-        <div className="border-l-4 border-ku-green px-6 py-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-ku-green">แรงจูงใจ</h2>
-        </div>
-        <div className="px-6 pb-6 pt-2">
-          <Field
-            label="เหตุผลที่อยากเข้าร่วม SDEC *"
-            error={errors.motivation?.message}
-            fullWidth
-          >
-            <textarea
-              {...register('motivation')}
-              rows={6}
-              placeholder="กรุณาอธิบายเหตุผล แรงจูงใจ และสิ่งที่คาดหวังจากการเข้าร่วม SDEC อย่างน้อย 50 ตัวอักษร"
-              className={`form-input resize-none ${errors.motivation ? 'form-input-error' : ''}`}
-            />
-            <p className="mt-1 text-right text-xs text-gray-400">
-              {motivationValue.length} / 3,000
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+
+        {/* ── Step 1: ข้อมูลส่วนตัว ─────────────────────────── */}
+        {currentStep === 1 && (
+          <SectionCard>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="ชื่อ-นามสกุล *" error={errors.full_name?.message} fullWidth>
+                <input {...register('full_name')} type="text" placeholder="เช่น นายเกษตร ศาสตร์"
+                  className={`form-input ${errors.full_name ? 'form-input-error' : ''}`} />
+              </Field>
+
+              <Field label="รหัสนิสิต *" error={errors.student_id?.message}>
+                <input {...register('student_id')} type="text" inputMode="numeric" maxLength={10}
+                  placeholder="0000000000"
+                  className={`form-input ${errors.student_id ? 'form-input-error' : ''}`} />
+              </Field>
+
+              <Field label="เกรดเฉลี่ยสะสม (GPA) *" error={errors.gpa?.message}>
+                <input {...register('gpa')} type="number" step="0.01" min="0" max="4" placeholder="0.00"
+                  className={`form-input ${errors.gpa ? 'form-input-error' : ''}`} />
+              </Field>
+
+              <Field label="คณะ *" error={errors.faculty?.message} fullWidth>
+                <select {...register('faculty')}
+                  className={`form-input ${errors.faculty ? 'form-input-error' : ''}`}>
+                  <option value="">เลือกคณะ</option>
+                  {KU_SRIRACHA_FACULTIES.map((f) => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="สาขาวิชา *" error={errors.major?.message}>
+                <input {...register('major')} type="text" placeholder="เช่น วิศวกรรมคอมพิวเตอร์"
+                  className={`form-input ${errors.major ? 'form-input-error' : ''}`} />
+              </Field>
+
+              <Field label="ชั้นปี *" error={errors.year?.message}>
+                <select {...register('year')}
+                  className={`form-input ${errors.year ? 'form-input-error' : ''}`}>
+                  <option value="">เลือกชั้นปี</option>
+                  {[1, 2, 3, 4].map((y) => (
+                    <option key={y} value={y}>ปีที่ {y}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+          </SectionCard>
+        )}
+
+        {/* ── Step 2: ข้อมูลติดต่อ ──────────────────────────── */}
+        {currentStep === 2 && (
+          <SectionCard>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="เบอร์โทรศัพท์ *" error={errors.phone?.message}>
+                <input {...register('phone')} type="tel" placeholder="08X-XXX-XXXX"
+                  className={`form-input ${errors.phone ? 'form-input-error' : ''}`} />
+              </Field>
+
+              <Field label="อีเมล *" error={errors.email?.message}>
+                <input {...register('email')} type="email" placeholder="example@ku.th"
+                  className={`form-input ${errors.email ? 'form-input-error' : ''}`} />
+              </Field>
+
+              <Field label="เหตุผลที่อยากเข้าร่วม SDEC *" error={errors.motivation?.message} fullWidth>
+                <textarea {...register('motivation')} rows={5}
+                  placeholder="กรุณาอธิบายเหตุผล แรงจูงใจ และสิ่งที่คาดหวังจากการเข้าร่วม SDEC อย่างน้อย 50 ตัวอักษร"
+                  className={`form-input resize-none ${errors.motivation ? 'form-input-error' : ''}`} />
+                <p className="mt-1 text-right text-xs text-gray-400">
+                  {(watchAll.motivation ?? '').length} / 3,000
+                </p>
+              </Field>
+            </div>
+          </SectionCard>
+        )}
+
+        {/* ── Step 3: เอกสารแนบ ─────────────────────────────── */}
+        {currentStep === 3 && (
+          <SectionCard>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <Controller
+                name="photo"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FileUpload
+                    id="photo"
+                    accept="image/jpeg,image/png"
+                    maxSizeBytes={2 * 1024 * 1024}
+                    label="รูปถ่าย *"
+                    hint=".jpg, .png ขนาดไม่เกิน 2MB"
+                    previewType="image"
+                    onChange={field.onChange}
+                    error={fieldState.error?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                name="resume"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <FileUpload
+                    id="resume"
+                    accept="application/pdf"
+                    maxSizeBytes={5 * 1024 * 1024}
+                    label="Resume / Portfolio *"
+                    hint=".pdf ขนาดไม่เกิน 5MB"
+                    previewType="document"
+                    onChange={field.onChange}
+                    error={fieldState.error?.message}
+                  />
+                )}
+              />
+            </div>
+          </SectionCard>
+        )}
+
+        {/* ── Step 4: ตรวจสอบและยืนยัน ─────────────────────── */}
+        {currentStep === 4 && (
+          <SectionCard>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">ตรวจสอบข้อมูลก่อนส่งใบสมัคร</h3>
+
+            <div className="rounded-lg bg-gray-50 px-4 py-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">ข้อมูลส่วนตัว</p>
+              <ReviewRow label="ชื่อ-นามสกุล"  value={watchAll.full_name} />
+              <ReviewRow label="รหัสนิสิต"      value={watchAll.student_id} />
+              <ReviewRow label="คณะ"            value={watchAll.faculty} />
+              <ReviewRow label="สาขาวิชา"       value={watchAll.major} />
+              <ReviewRow label="ชั้นปี"         value={watchAll.year ? `ปีที่ ${watchAll.year}` : undefined} />
+              <ReviewRow label="เกรดเฉลี่ย"     value={watchAll.gpa ? Number(watchAll.gpa).toFixed(2) : undefined} />
+            </div>
+
+            <div className="rounded-lg bg-gray-50 px-4 py-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">ช่องทางติดต่อ</p>
+              <ReviewRow label="เบอร์โทรศัพท์" value={watchAll.phone} />
+              <ReviewRow label="อีเมล"          value={watchAll.email} />
+            </div>
+
+            <div className="rounded-lg bg-gray-50 px-4 py-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">เอกสารแนบ</p>
+              <ReviewRow label="รูปถ่าย"  value={watchAll.photo?.name ?? 'ยังไม่ได้อัปโหลด'} />
+              <ReviewRow label="Resume"   value={watchAll.resume?.name ?? 'ยังไม่ได้อัปโหลด'} />
+            </div>
+
+            <div className="rounded-lg bg-gray-50 px-4 py-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">แรงจูงใจ</p>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-4">
+                {watchAll.motivation || <span className="text-gray-400 italic">ยังไม่ได้กรอก</span>}
+              </p>
+            </div>
+
+            <p className="text-xs text-gray-400 text-center mt-2">
+              กรุณาตรวจสอบข้อมูลให้ครบถ้วนก่อนกดส่งใบสมัคร
             </p>
-          </Field>
-        </div>
-      </div>
+          </SectionCard>
+        )}
 
-      {/* Submit */}
-      <div className="flex flex-col items-center gap-3">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="btn-primary w-full sm:w-auto sm:min-w-[200px]"
-        >
-          {isSubmitting ? (
-            <>
-              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              กำลังส่งใบสมัคร...
-            </>
-          ) : 'ส่งใบสมัคร'}
-        </button>
-        <p className="text-xs text-gray-400">
-          ข้อมูลของคุณจะถูกเก็บรักษาอย่างปลอดภัย
-        </p>
-      </div>
-    </form>
+        {/* ── Navigation buttons ────────────────────────────── */}
+        <div className="mt-5 flex items-center justify-between gap-3">
+          {currentStep > 1 ? (
+            <button type="button" onClick={goBack} className="btn-secondary">
+              ← ย้อนกลับ
+            </button>
+          ) : (
+            <div />
+          )}
+
+          {currentStep < STEPS.length ? (
+            <button type="button" onClick={goNext} className="btn-primary">
+              ถัดไป →
+            </button>
+          ) : (
+            <button type="submit" disabled={isSubmitting} className="btn-primary">
+              {isSubmitting ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  กำลังส่งใบสมัคร...
+                </>
+              ) : 'ยืนยันและส่งใบสมัคร ✓'}
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
   )
 }
