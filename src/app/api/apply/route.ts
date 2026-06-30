@@ -1,10 +1,21 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { parseAndValidateApply } from '@/lib/validate-apply'
-import { badRequest, conflict, created, serverError, withErrorHandler } from '@/lib/api-response'
+import { badRequest, conflict, created, serverError, tooManyRequests, withErrorHandler } from '@/lib/api-response'
 import { sendConfirmationEmail } from '@/lib/email'
+import { rateLimit, getIP } from '@/lib/rate-limit'
 import type { ApplyResponse } from '@/types/api'
 
+// 5 submissions per IP per hour — generous for legitimate use, stops spam
+const RATE_LIMIT    = 5
+const RATE_WINDOW   = 60 * 60 * 1000   // 1 hour
+
 export const POST = withErrorHandler(async (req) => {
+  // 0. Rate limit by IP
+  const ip = getIP(req)
+  if (!rateLimit(`apply:${ip}`, RATE_LIMIT, RATE_WINDOW)) {
+    return tooManyRequests('ส่งใบสมัครบ่อยเกินไป กรุณารอ 1 ชั่วโมงแล้วลองใหม่')
+  }
+
   // 1. Parse + validate form
   const result = await parseAndValidateApply(req)
   if ('errors' in result) {
@@ -22,7 +33,7 @@ export const POST = withErrorHandler(async (req) => {
     .maybeSingle()
 
   if (existing) {
-    return conflict(`An application for student ID ${fields.student_id} already exists`)
+    return conflict('รหัสนิสิตนี้มีใบสมัครในระบบแล้ว')
   }
 
   // 3. Upload photo → applicant-photos/{student_id}/photo.jpg|png
@@ -56,7 +67,6 @@ export const POST = withErrorHandler(async (req) => {
     })
 
   if (resumeError) {
-    // Roll back the photo upload to avoid orphaned files
     await supabase.storage.from('applicant-photos').remove([photoPath])
     console.error('[apply] resume upload failed:', resumeError)
     return serverError('Failed to upload resume')
@@ -77,14 +87,13 @@ export const POST = withErrorHandler(async (req) => {
       email:      fields.email,
       motivation: fields.motivation,
       photo_url:  photoUrl,
-      resume_url: resumePath,   // store path, not signed URL — generated on demand
+      resume_url: resumePath,
       status:     'pending',
     })
     .select('id')
     .single()
 
   if (insertError || !application) {
-    // Roll back both uploads
     await Promise.all([
       supabase.storage.from('applicant-photos').remove([photoPath]),
       supabase.storage.from('applicant-resumes').remove([resumePath]),
@@ -95,7 +104,6 @@ export const POST = withErrorHandler(async (req) => {
 
   const submittedAt = new Date().toISOString()
 
-  // Fire-and-forget — email failure must not fail the request
   void sendConfirmationEmail({
     to:          fields.email,
     fullName:    fields.full_name,

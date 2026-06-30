@@ -18,9 +18,23 @@ export const POST = withErrorHandler(async (req) => {
 
   if (!rawIdentifier) return badRequest('กรุณาระบุ Email หรือ Username')
   if (!password || password.length < 8) return badRequest('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร')
+  if (password.length > 72) return badRequest('รหัสผ่านยาวเกินไป')
 
-  // username → internal email (ถ้าไม่มี @ ถือว่าเป็น username)
-  const email = rawIdentifier.includes('@') ? rawIdentifier : `${rawIdentifier}@sdec.admin`
+  let email: string
+  if (rawIdentifier.includes('@')) {
+    // Real email — basic format check
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawIdentifier)) {
+      return badRequest('รูปแบบ Email ไม่ถูกต้อง')
+    }
+    if (rawIdentifier.length > 254) return badRequest('Email ยาวเกินไป')
+    email = rawIdentifier
+  } else {
+    // Username — allow only alphanumeric, underscore, hyphen (3–30 chars)
+    if (!/^[a-zA-Z0-9_-]{3,30}$/.test(rawIdentifier)) {
+      return badRequest('Username ต้องเป็นตัวอักษร a-z, 0-9, _ หรือ - ความยาว 3-30 ตัว')
+    }
+    email = `${rawIdentifier}@sdec.admin`
+  }
 
   const supabase = createAdminClient()
 

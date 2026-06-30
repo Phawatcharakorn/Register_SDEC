@@ -1,5 +1,14 @@
 import { Resend } from 'resend'
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 // ส่งอีเมลยืนยันการรับใบสมัคร
 // ถ้าไม่มี RESEND_API_KEY → ข้ามไปเงียบๆ ไม่ให้ fail request
 export async function sendConfirmationEmail(opts: {
@@ -21,6 +30,10 @@ export async function sendConfirmationEmail(opts: {
   })
 
   const statusUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://register-sdec.vercel.app'}/status?q=${opts.referenceId}`
+
+  const safeName      = escapeHtml(opts.fullName)
+  const safeStudentId = escapeHtml(opts.studentId)
+  const safeRefId     = escapeHtml(opts.referenceId)
 
   const html = /* html */`
 <!DOCTYPE html>
@@ -71,7 +84,7 @@ export async function sendConfirmationEmail(opts: {
               ได้รับใบสมัครของคุณแล้ว!
             </h2>
             <p style="margin:0 0 24px;text-align:center;font-size:14px;color:#6B7280;">
-              สวัสดี <strong style="color:#111827;">${opts.fullName}</strong> ระบบได้รับใบสมัครเรียบร้อยแล้ว
+              สวัสดี <strong style="color:#111827;">${safeName}</strong> ระบบได้รับใบสมัครเรียบร้อยแล้ว
             </p>
 
             <!-- Info box -->
@@ -83,13 +96,13 @@ export async function sendConfirmationEmail(opts: {
                     <tr>
                       <td style="padding:8px 0;border-bottom:1px solid #F3F4F6;">
                         <span style="font-size:12px;color:#9CA3AF;">ชื่อผู้สมัคร</span><br>
-                        <strong style="font-size:14px;color:#111827;">${opts.fullName}</strong>
+                        <strong style="font-size:14px;color:#111827;">${safeName}</strong>
                       </td>
                     </tr>
                     <tr>
                       <td style="padding:8px 0;border-bottom:1px solid #F3F4F6;">
                         <span style="font-size:12px;color:#9CA3AF;">รหัสนิสิต</span><br>
-                        <strong style="font-size:14px;color:#111827;">${opts.studentId}</strong>
+                        <strong style="font-size:14px;color:#111827;">${safeStudentId}</strong>
                       </td>
                     </tr>
                     <tr>
@@ -101,7 +114,7 @@ export async function sendConfirmationEmail(opts: {
                     <tr>
                       <td style="padding:8px 0;">
                         <span style="font-size:12px;color:#9CA3AF;">เลขที่ใบสมัคร</span><br>
-                        <strong style="font-size:12px;color:#111827;font-family:monospace;">${opts.referenceId}</strong>
+                        <strong style="font-size:12px;color:#111827;font-family:monospace;">${safeRefId}</strong>
                       </td>
                     </tr>
                   </table>
@@ -163,7 +176,7 @@ export async function sendConfirmationEmail(opts: {
     await resend.emails.send({
       from:    'SDEC <noreply@register-sdec.vercel.app>',
       to:      [opts.to],
-      subject: `[SDEC] ยืนยันการรับใบสมัคร — ${opts.fullName}`,
+      subject: `[SDEC] ยืนยันการรับใบสมัคร — ${safeName}`,
       html,
     })
   } catch (e) {

@@ -1,14 +1,26 @@
 import { NextRequest } from 'next/server'
-import { ok, badRequest, notFound, serverError } from '@/lib/api-response'
+import { ok, badRequest, notFound, serverError, tooManyRequests } from '@/lib/api-response'
 import { createAdminClient } from '@/lib/supabase/server'
+import { rateLimit, getIP } from '@/lib/rate-limit'
+
+// 30 lookups per IP per minute — enough for real use, stops enumeration
+const RATE_LIMIT  = 30
+const RATE_WINDOW = 60 * 1000   // 1 minute
 
 export async function GET(req: NextRequest) {
+  const ip = getIP(req)
+  if (!rateLimit(`status:${ip}`, RATE_LIMIT, RATE_WINDOW)) {
+    return tooManyRequests('ค้นหาบ่อยเกินไป กรุณารอสักครู่')
+  }
+
   const q = req.nextUrl.searchParams.get('q')?.trim()
   if (!q) return badRequest('กรุณากรอกรหัสนิสิตหรือเลขที่ใบสมัคร')
 
+  // Reject suspiciously long input
+  if (q.length > 100) return badRequest('ข้อมูลที่ค้นหายาวเกินไป')
+
   const admin = createAdminClient()
 
-  // student_id = 10 digits, otherwise treat as UUID reference
   const isStudentId = /^\d{10}$/.test(q)
 
   const base = admin

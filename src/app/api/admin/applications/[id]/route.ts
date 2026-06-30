@@ -88,6 +88,9 @@ export const PATCH = withErrorHandler(async (req, ctx) => {
   if (body.admin_note !== undefined && typeof body.admin_note !== 'string') {
     return badRequest('admin_note must be a string')
   }
+  if (body.admin_note && body.admin_note.length > 2000) {
+    return badRequest('admin_note must be at most 2000 characters')
+  }
 
   const supabase = createAdminClient()
 

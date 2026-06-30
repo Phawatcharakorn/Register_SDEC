@@ -15,8 +15,11 @@ export const GET = withErrorHandler(async (req) => {
 
   // 2. Parse query params
   const url = new URL(req.url)
+  const rawSearch = url.searchParams.get('search') ?? undefined
+  if (rawSearch && rawSearch.length > 100) return badRequest('search query is too long')
+
   const query: AdminApplicationsQuery = {
-    search: url.searchParams.get('search') ?? undefined,
+    search: rawSearch,
     status: (url.searchParams.get('status') ?? 'all') as AdminApplicationsQuery['status'],
     page:   Math.max(1, parseInt(url.searchParams.get('page')  ?? '1',  10)),
     limit:  Math.min(MAX_LIMIT, Math.max(1, parseInt(url.searchParams.get('limit') ?? String(DEFAULT_LIMIT), 10))),

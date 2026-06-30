@@ -39,6 +39,11 @@ export function conflict(error: string) {
   return NextResponse.json<ApiError>({ error }, { status: 409 })
 }
 
+/** 429 Too Many Requests */
+export function tooManyRequests(error = 'Too many requests — กรุณารอสักครู่แล้วลองใหม่') {
+  return NextResponse.json<ApiError>({ error }, { status: 429 })
+}
+
 /** 500 Internal Server Error */
 export function serverError(error = 'Internal server error') {
   return NextResponse.json<ApiError>({ error }, { status: 500 })

@@ -1,10 +1,18 @@
 import type { ApiError } from '@/types/api'
 
-const STUDENT_ID_RE = /^\d{10}$/
+const STUDENT_ID_RE    = /^\d{10}$/
 const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png']
 const ALLOWED_RESUME_TYPE = 'application/pdf'
-const MAX_PHOTO_BYTES = 2 * 1024 * 1024   // 2 MB
-const MAX_RESUME_BYTES = 5 * 1024 * 1024  // 5 MB
+const MAX_PHOTO_BYTES  = 2 * 1024 * 1024   // 2 MB
+const MAX_RESUME_BYTES = 5 * 1024 * 1024   // 5 MB
+
+// Server-side length limits (match schema.ts)
+const MAX_NAME        = 200
+const MAX_MAJOR       = 200
+const MAX_CORPS       = 100
+const MAX_PHONE       = 20
+const MAX_EMAIL       = 254   // RFC 5321 max
+const MAX_MOTIVATION  = 3000
 
 export interface ApplyFields {
   corps: string
@@ -21,10 +29,6 @@ export interface ApplyFields {
   resume: File
 }
 
-/**
- * Parses and validates multipart/form-data for POST /api/apply.
- * Returns validated fields or a structured error map.
- */
 export async function parseAndValidateApply(
   request: Request,
 ): Promise<{ fields: ApplyFields } | { errors: ApiError['details'] }> {
@@ -53,13 +57,28 @@ export async function parseAndValidateApply(
   const photo      = getFile('photo')
   const resume     = getFile('resume')
 
-  // Required text fields
-  if (!corps)      errors.corps      = 'Corps selection is required'
-  if (!full_name)  errors.full_name  = 'Full name is required'
-  if (!faculty)    errors.faculty    = 'Faculty is required'
-  if (!major)      errors.major      = 'Major is required'
-  if (!phone)      errors.phone      = 'Phone number is required'
-  if (!motivation) errors.motivation = 'Motivation is required'
+  // corps
+  if (!corps)                     errors.corps = 'Corps selection is required'
+  else if (corps.length > MAX_CORPS) errors.corps = 'Corps value is too long'
+
+  // full_name
+  if (!full_name)                        errors.full_name = 'Full name is required'
+  else if (full_name.length > MAX_NAME)  errors.full_name = 'Full name is too long'
+
+  // faculty
+  if (!faculty) errors.faculty = 'Faculty is required'
+
+  // major
+  if (!major)                        errors.major = 'Major is required'
+  else if (major.length > MAX_MAJOR) errors.major = 'Major name is too long'
+
+  // phone
+  if (!phone)                        errors.phone = 'Phone number is required'
+  else if (phone.length > MAX_PHONE) errors.phone = 'Phone number is too long'
+
+  // motivation
+  if (!motivation)                            errors.motivation = 'Motivation is required'
+  else if (motivation.length > MAX_MOTIVATION) errors.motivation = `Motivation must be at most ${MAX_MOTIVATION} characters`
 
   // student_id: exactly 10 digits
   if (!student_id) {
@@ -71,6 +90,8 @@ export async function parseAndValidateApply(
   // email
   if (!email) {
     errors.email = 'Email is required'
+  } else if (email.length > MAX_EMAIL) {
+    errors.email = 'Email address is too long'
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.email = 'Invalid email address'
   }
@@ -83,7 +104,7 @@ export async function parseAndValidateApply(
     errors.year = 'Year must be between 1 and 4'
   }
 
-  // GPA: 0.00–4.00, up to 2 decimal places
+  // GPA: 0.00–4.00
   const gpa = parseFloat(gpaRaw)
   if (!gpaRaw) {
     errors.gpa = 'GPA is required'
