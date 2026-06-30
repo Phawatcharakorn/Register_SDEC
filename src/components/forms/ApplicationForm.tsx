@@ -52,11 +52,13 @@ function FormSidebar({ savedAt }: { savedAt: string | null }) {
         </h3>
         <ul className="space-y-2.5">
           {[
-            { icon: '📷', text: 'รูปถ่ายหน้าตรง (.jpg / .png, ≤ 2MB)' },
-            { icon: '📄', text: 'Resume หรือ Portfolio (.pdf, ≤ 5MB)' },
-          ].map(({ icon, text }) => (
+            { text: 'รูปถ่ายหน้าตรง (.jpg / .png, ≤ 2MB)' },
+            { text: 'Resume หรือ Portfolio (.pdf, ≤ 5MB)' },
+          ].map(({ text }) => (
             <li key={text} className="flex items-start gap-2 text-xs text-gray-600 leading-relaxed">
-              <span>{icon}</span>
+              <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ku-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
               <span>{text}</span>
             </li>
           ))}
@@ -106,7 +108,7 @@ function FormSidebar({ savedAt }: { savedAt: string | null }) {
 
       {savedAt && (
         <p className="text-center text-xs text-gray-400">
-          💾 บันทึกอัตโนมัติเมื่อ {savedAt}
+          บันทึกอัตโนมัติเมื่อ {savedAt}
         </p>
       )}
     </aside>
@@ -615,7 +617,11 @@ export default function ApplicationForm() {
               <div className="rounded-xl border border-gray-200 bg-white shadow-card overflow-hidden">
                 <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ku-green-50 text-xs font-bold text-ku-green">✎</span>
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ku-green-50 text-ku-green">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 11l6.586-6.586a2 2 0 112.828 2.828L11.828 13.828a2 2 0 01-.707.465l-3.121 1.04 1.04-3.121A2 2 0 019 11z" />
+                      </svg>
+                    </span>
                     <h3 className="text-sm font-semibold text-gray-800">เหตุผลการสมัคร</h3>
                   </div>
                   <button
@@ -714,7 +720,7 @@ export default function ApplicationForm() {
           {/* Mobile auto-save status */}
           {savedAt && (
             <p className="mt-3 text-center text-xs text-gray-400 lg:hidden">
-              💾 บันทึกอัตโนมัติเมื่อ {savedAt}
+              บันทึกอัตโนมัติเมื่อ {savedAt}
             </p>
           )}
 

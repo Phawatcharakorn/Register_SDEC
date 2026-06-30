@@ -113,15 +113,15 @@ export async function sendConfirmationEmail(opts: {
             <h3 style="margin:0 0 12px;font-size:14px;font-weight:600;color:#374151;">ขั้นตอนถัดไป</h3>
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
               ${[
-                ['🔍', 'ทีมงาน SDEC จะพิจารณาใบสมัครภายใน 7 วันทำการ'],
-                ['📧', 'คุณจะได้รับอีเมลแจ้งผลการคัดเลือกที่อีเมลนี้'],
-                ['📋', 'สามารถติดตามสถานะได้ที่ลิงก์ด้านล่าง'],
-              ].map(([icon, text]) => `
+                'ทีมงาน SDEC จะพิจารณาใบสมัครภายใน 7 วันทำการ',
+                'คุณจะได้รับอีเมลแจ้งผลการคัดเลือกที่อีเมลนี้',
+                'สามารถติดตามสถานะได้ที่ลิงก์ด้านล่าง',
+              ].map((text) => `
               <tr>
-                <td style="padding:6px 0;">
+                <td style="padding:5px 0;">
                   <table cellpadding="0" cellspacing="0">
                     <tr>
-                      <td style="width:28px;vertical-align:top;font-size:14px;">${icon}</td>
+                      <td style="width:20px;vertical-align:top;font-size:13px;color:#1565C0;font-weight:700;">·</td>
                       <td style="font-size:13px;color:#4B5563;line-height:1.5;">${text}</td>
                     </tr>
                   </table>
