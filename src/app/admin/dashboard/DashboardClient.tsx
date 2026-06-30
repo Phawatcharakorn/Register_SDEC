@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -101,12 +102,14 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
       <header className="sticky top-0 z-10 border-b border-gray-200 bg-white shadow-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-ku-green font-bold text-ku-gold text-xs shadow-sm">
-              SDEC
+            <div className="relative h-9 w-9 overflow-hidden rounded-lg shadow-sm">
+              <Image src="/sdec-logo.jpg" alt="SDEC Logo" fill className="object-cover" sizes="36px" />
             </div>
             <div>
               <h1 className="text-sm font-semibold text-gray-900">Admin Dashboard</h1>
-              <p className="text-xs text-gray-400">{userEmail}</p>
+              <p className="text-xs text-gray-400">
+                {userEmail.endsWith('@sdec.admin') ? userEmail.replace('@sdec.admin', '') : userEmail}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
