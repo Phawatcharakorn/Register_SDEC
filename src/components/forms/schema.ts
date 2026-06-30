@@ -85,6 +85,7 @@ export const CORPS_OPTIONS = [
   'Event Organizer',
   'Human Resource Development',
   'Catering',
+  'Student Assistant',
   'อื่นๆ',
 ] as const
 
