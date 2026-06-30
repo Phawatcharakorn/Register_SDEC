@@ -149,7 +149,7 @@ export default function DetailClient({ id }: { id: string }) {
           <h3 className="mb-3 text-sm font-semibold text-gray-700">
             เหตุผลที่อยากเข้าร่วม SDEC
           </h3>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-gray-700">
             {app.motivation}
           </p>
         </div>
