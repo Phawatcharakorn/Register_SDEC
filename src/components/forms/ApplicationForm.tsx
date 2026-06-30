@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
+import Link from 'next/link'
 import FileUpload from '@/components/ui/FileUpload'
 import StepIndicator from '@/components/ui/StepIndicator'
 import type { Step } from '@/components/ui/StepIndicator'
@@ -310,6 +311,16 @@ export default function ApplicationForm() {
           </p>
         </div>
         <p className="mt-4 text-xs text-gray-400">กรุณาเก็บเลขที่อ้างอิงนี้ไว้สำหรับติดตามสถานะ</p>
+        <Link
+          href={`/status?q=${success.referenceId}`}
+          className="mt-4 inline-flex items-center gap-2 rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          ตรวจสอบสถานะการสมัคร
+        </Link>
       </div>
     )
   }

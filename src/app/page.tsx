@@ -28,7 +28,21 @@ export default function HomePage() {
         <div className="absolute -bottom-16 left-10 h-48 w-48 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #BBDEFB, transparent)' }}/>
 
         {/* Content */}
-        <div className="relative mx-auto max-w-3xl px-6 py-10 sm:px-8">
+        <div className="relative mx-auto max-w-5xl px-6 py-10 sm:px-8">
+          {/* Status check link — top right */}
+          <div className="absolute right-6 top-4 sm:right-8">
+            <Link
+              href="/status"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white/90 backdrop-blur-sm hover:bg-white/20 transition-colors"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              ตรวจสอบสถานะ
+            </Link>
+          </div>
+
           <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left sm:gap-6">
 
             {/* Logo with glow ring */}
