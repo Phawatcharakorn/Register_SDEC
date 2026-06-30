@@ -220,16 +220,17 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
 
           <form onSubmit={handleCreateAdmin} className="space-y-4">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600">Email</label>
+              <label className="mb-1 block text-xs font-medium text-gray-600">Email หรือ Username</label>
               <input
-                type="email"
+                type="text"
                 required
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="admin@example.com"
+                placeholder="เช่น ajarn_som หรือ admin@ku.th"
                 className="form-input"
                 disabled={creating}
               />
+              <p className="mt-1 text-xs text-gray-400">ถ้าใส่ username (ไม่มี @) จะ login ด้วย username นั้น</p>
             </div>
 
             <div>

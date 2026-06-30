@@ -5,28 +5,36 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 
+// username → email ภายใน (ถ้าไม่มี @ ถือว่าเป็น username)
+function toEmail(input: string) {
+  return input.includes('@') ? input : `${input}@sdec.admin`
+}
+
 export default function AdminLoginPage() {
   const router = useRouter()
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword]     = useState('')
+  const [loading, setLoading]       = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) {
-      toast.error('กรุณากรอกอีเมลและรหัสผ่าน')
+    if (!identifier || !password) {
+      toast.error('กรุณากรอก Email/Username และรหัสผ่าน')
       return
     }
 
     setLoading(true)
     const supabase = createClient()
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({
+      email: toEmail(identifier.trim()),
+      password,
+    })
 
     if (error) {
       toast.error(
         error.message.includes('Invalid login')
-          ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
+          ? 'Username/Email หรือรหัสผ่านไม่ถูกต้อง'
           : 'เกิดข้อผิดพลาด กรุณาลองใหม่',
       )
       setLoading(false)
@@ -53,14 +61,14 @@ export default function AdminLoginPage() {
         <div className="section-card">
           <form onSubmit={handleLogin} noValidate className="space-y-4">
             <div>
-              <label htmlFor="email" className="form-label">อีเมล</label>
+              <label htmlFor="identifier" className="form-label">Email หรือ Username</label>
               <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@ku.th"
+                id="identifier"
+                type="text"
+                autoComplete="username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="เช่น ajarn_som หรือ admin@ku.th"
                 className="form-input"
                 disabled={loading}
               />
