@@ -187,6 +187,7 @@ export default function ApplicationForm() {
   const [currentStep, setCurrentStep] = useState(1)
   const [success, setSuccess]         = useState<{ referenceId: string } | null>(null)
   const [savedAt, setSavedAt]         = useState<string | null>(null)
+  const [confirmed, setConfirmed]     = useState(false)
   const intervalRef                   = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const {
@@ -512,42 +513,159 @@ export default function ApplicationForm() {
 
           {/* ── Step 4: ตรวจสอบและยืนยัน ──────────────────── */}
           {currentStep === 4 && (
-            <SectionCard>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">ตรวจสอบข้อมูลก่อนส่งใบสมัคร</h3>
+            <div className="space-y-4">
 
-              <div className="rounded-lg bg-gray-50 px-4 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">ข้อมูลส่วนตัว</p>
-                <ReviewRow label="ชื่อ-นามสกุล" value={watchAll.full_name} />
-                <ReviewRow label="รหัสนิสิต"    value={watchAll.student_id} />
-                <ReviewRow label="คณะ"          value={watchAll.faculty} />
-                <ReviewRow label="สาขาวิชา"     value={watchAll.major} />
-                <ReviewRow label="ชั้นปี"       value={watchAll.year ? `ปีที่ ${watchAll.year}` : undefined} />
-                <ReviewRow label="เกรดเฉลี่ย"   value={watchAll.gpa ? Number(watchAll.gpa).toFixed(2) : undefined} />
+              {/* ข้อมูลส่วนตัว */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-card overflow-hidden">
+                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ku-green-50 text-xs font-bold text-ku-green">1</span>
+                    <h3 className="text-sm font-semibold text-gray-800">ข้อมูลส่วนตัว</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(1)}
+                    className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-ku-green hover:bg-ku-green-50 transition-colors"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    แก้ไข
+                  </button>
+                </div>
+                <div className="px-5 py-4 grid grid-cols-1 gap-0 sm:grid-cols-2">
+                  <ReviewRow label="ชื่อ-นามสกุล" value={watchAll.full_name} />
+                  <ReviewRow label="รหัสนิสิต"    value={watchAll.student_id} />
+                  <ReviewRow label="คณะ"          value={watchAll.faculty} />
+                  <ReviewRow label="สาขาวิชา"     value={watchAll.major} />
+                  <ReviewRow label="ชั้นปี"       value={watchAll.year ? `ปีที่ ${watchAll.year}` : undefined} />
+                  <ReviewRow label="เกรดเฉลี่ย"   value={watchAll.gpa ? Number(watchAll.gpa).toFixed(2) : undefined} />
+                </div>
               </div>
 
-              <div className="rounded-lg bg-gray-50 px-4 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">ช่องทางติดต่อ</p>
-                <ReviewRow label="เบอร์โทรศัพท์" value={watchAll.phone} />
-                <ReviewRow label="อีเมล"         value={watchAll.email} />
+              {/* ข้อมูลติดต่อ */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-card overflow-hidden">
+                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ku-green-50 text-xs font-bold text-ku-green">2</span>
+                    <h3 className="text-sm font-semibold text-gray-800">ข้อมูลติดต่อ</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-ku-green hover:bg-ku-green-50 transition-colors"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    แก้ไข
+                  </button>
+                </div>
+                <div className="px-5 py-4">
+                  <ReviewRow label="เบอร์โทรศัพท์" value={watchAll.phone} />
+                  <ReviewRow label="อีเมล"         value={watchAll.email} />
+                </div>
               </div>
 
-              <div className="rounded-lg bg-gray-50 px-4 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">เอกสารแนบ</p>
-                <ReviewRow label="รูปถ่าย" value={watchAll.photo?.name ?? 'ยังไม่ได้อัปโหลด'} />
-                <ReviewRow label="Resume"  value={watchAll.resume?.name ?? 'ยังไม่ได้อัปโหลด'} />
+              {/* เอกสารแนบ */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-card overflow-hidden">
+                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ku-green-50 text-xs font-bold text-ku-green">3</span>
+                    <h3 className="text-sm font-semibold text-gray-800">เอกสารแนบ</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(3)}
+                    className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-ku-green hover:bg-ku-green-50 transition-colors"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    แก้ไข
+                  </button>
+                </div>
+                <div className="px-5 py-4">
+                  <div className="flex items-center gap-3 py-2 border-b border-gray-50">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50">
+                      <svg className="h-4 w-4 text-ku-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-400">รูปถ่าย</p>
+                      <p className="truncate text-sm font-medium text-gray-800">
+                        {watchAll.photo?.name ?? <span className="font-normal text-red-400">ยังไม่ได้อัปโหลด</span>}
+                      </p>
+                    </div>
+                    {watchAll.photo && (
+                      <svg className="ml-auto h-4 w-4 shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 py-2">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50">
+                      <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-400">Resume / Portfolio</p>
+                      <p className="truncate text-sm font-medium text-gray-800">
+                        {watchAll.resume?.name ?? <span className="font-normal text-red-400">ยังไม่ได้อัปโหลด</span>}
+                      </p>
+                    </div>
+                    {watchAll.resume && (
+                      <svg className="ml-auto h-4 w-4 shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div className="rounded-lg bg-gray-50 px-4 py-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">แรงจูงใจ</p>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-4">
-                  {watchAll.motivation || <span className="italic text-gray-400">ยังไม่ได้กรอก</span>}
-                </p>
+              {/* เหตุผลการสมัคร */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-card overflow-hidden">
+                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ku-green-50 text-xs font-bold text-ku-green">✎</span>
+                    <h3 className="text-sm font-semibold text-gray-800">เหตุผลการสมัคร</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-ku-green hover:bg-ku-green-50 transition-colors"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    แก้ไข
+                  </button>
+                </div>
+                <div className="px-5 py-4">
+                  {watchAll.motivation
+                    ? <p className="text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">{watchAll.motivation}</p>
+                    : <p className="text-sm italic text-gray-400">ยังไม่ได้กรอก</p>
+                  }
+                </div>
               </div>
 
-              <p className="text-center text-xs text-gray-400">
-                กรุณาตรวจสอบข้อมูลให้ครบถ้วนก่อนกดส่งใบสมัคร
-              </p>
-            </SectionCard>
+              {/* Confirmation checkbox */}
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-gray-200 bg-white p-4 shadow-card transition-colors hover:border-ku-green has-[:checked]:border-ku-green has-[:checked]:bg-ku-green-50">
+                <input
+                  type="checkbox"
+                  checked={confirmed}
+                  onChange={(e) => setConfirmed(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-ku-green cursor-pointer"
+                />
+                <span className="text-sm leading-relaxed text-gray-700">
+                  ข้าพเจ้าขอรับรองว่าข้อมูลข้างต้น<span className="font-semibold text-gray-900">เป็นความจริงทุกประการ</span>{' '}
+                  และยินยอมให้ทีมงาน SDEC ใช้ข้อมูลนี้เพื่อการพิจารณาคัดเลือก
+                </span>
+              </label>
+
+            </div>
           )}
 
           {/* ── Navigation ──────────────────────────────────── */}
@@ -581,19 +699,28 @@ export default function ApplicationForm() {
                   ถัดไป →
                 </button>
               ) : (
-                <button type="submit" disabled={isSubmitting} className="btn-primary">
-                  {isSubmitting ? (
-                    <>
-                      <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                      </svg>
-                      กำลังส่งใบสมัคร...
-                    </>
-                  ) : (
-                    'ยืนยันและส่งใบสมัคร ✓'
+                <div className="flex flex-col items-end gap-1.5">
+                  {!confirmed && (
+                    <p className="text-xs text-amber-600">กรุณายืนยันความถูกต้องของข้อมูลก่อนส่ง</p>
                   )}
-                </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !confirmed}
+                    className="btn-primary"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                        กำลังส่งใบสมัคร...
+                      </>
+                    ) : (
+                      'ยืนยันและส่งใบสมัคร ✓'
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           </div>
