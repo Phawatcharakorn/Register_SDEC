@@ -38,7 +38,7 @@ export const GET = withErrorHandler(async (req) => {
   let dbQuery = supabase
     .from('applications')
     .select(
-      'id, created_at, full_name, student_id, faculty, major, year, gpa, phone, email, photo_url, status',
+      'id, created_at, full_name, student_id, faculty, major, year, gpa, phone, email, corps, photo_url, status',
       { count: 'exact' },
     )
     .order('created_at', { ascending: false })

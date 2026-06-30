@@ -66,6 +66,7 @@ export const POST = withErrorHandler(async (req) => {
   const { data: application, error: insertError } = await supabase
     .from('applications')
     .insert({
+      corps:      fields.corps,
       full_name:  fields.full_name,
       student_id: fields.student_id,
       faculty:    fields.faculty,

@@ -15,6 +15,7 @@ export interface Application {
   phone: string
   email: string
   motivation: string
+  corps: string | null           // ฝ่ายที่ต้องการสมัคร
   photo_url: string | null
   resume_url: string | null
   status: ApplicationStatus

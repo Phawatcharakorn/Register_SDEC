@@ -7,6 +7,7 @@ const MAX_PHOTO_BYTES = 2 * 1024 * 1024   // 2 MB
 const MAX_RESUME_BYTES = 5 * 1024 * 1024  // 5 MB
 
 export interface ApplyFields {
+  corps: string
   full_name: string
   student_id: string
   faculty: string
@@ -39,6 +40,7 @@ export async function parseAndValidateApply(
   const getString = (key: string) => (form.get(key) as string | null)?.trim() ?? ''
   const getFile   = (key: string) => form.get(key) as File | null
 
+  const corps      = getString('corps')
   const full_name  = getString('full_name')
   const student_id = getString('student_id')
   const faculty    = getString('faculty')
@@ -52,6 +54,7 @@ export async function parseAndValidateApply(
   const resume     = getFile('resume')
 
   // Required text fields
+  if (!corps)      errors.corps      = 'Corps selection is required'
   if (!full_name)  errors.full_name  = 'Full name is required'
   if (!faculty)    errors.faculty    = 'Faculty is required'
   if (!major)      errors.major      = 'Major is required'
@@ -110,6 +113,7 @@ export async function parseAndValidateApply(
 
   return {
     fields: {
+      corps,
       full_name,
       student_id,
       faculty,

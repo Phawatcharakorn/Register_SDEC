@@ -9,7 +9,7 @@ import StepIndicator from '@/components/ui/StepIndicator'
 import SuccessCard from '@/components/SuccessCard'
 import type { Step } from '@/components/ui/StepIndicator'
 import type { SuccessData } from '@/components/SuccessCard'
-import { applicationSchema, type ApplicationFormValues, KU_SRIRACHA_FACULTIES } from './schema'
+import { applicationSchema, type ApplicationFormValues, KU_SRIRACHA_FACULTIES, CORPS_OPTIONS } from './schema'
 
 const DRAFT_KEY = 'sdec_draft_v1'
 
@@ -18,6 +18,127 @@ function formatPhone(raw: string): string {
   if (d.length <= 3) return d
   if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`
   return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`
+}
+
+// ─── Corps Picker ─────────────────────────────────────────────────
+
+const CORPS_CONFIG: { value: string; icon: React.ReactNode; desc: string }[] = [
+  {
+    value: 'Marketing',
+    desc: 'สื่อสาร ประชาสัมพันธ์ และการตลาด',
+    icon: (
+      <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+      </svg>
+    ),
+  },
+  {
+    value: 'Event Organizer',
+    desc: 'วางแผนและจัดกิจกรรมโครงการต่างๆ',
+    icon: (
+      <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
+  {
+    value: 'Human Resource Development',
+    desc: 'พัฒนาบุคลากรและทรัพยากรมนุษย์',
+    icon: (
+      <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  },
+  {
+    value: 'Catering',
+    desc: 'จัดการด้านอาหารและการเลี้ยงรับรอง',
+    icon: (
+      <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    ),
+  },
+  {
+    value: 'อื่นๆ',
+    desc: 'ฝ่ายอื่นที่ไม่ได้ระบุในรายการ',
+    icon: (
+      <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+      </svg>
+    ),
+  },
+]
+
+function CorpsPicker({
+  selected,
+  onSelect,
+  onConfirm,
+}: {
+  selected: string
+  onSelect: (v: string) => void
+  onConfirm: () => void
+}) {
+  return (
+    <div className="space-y-6 animate-fade-up">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">เลือกฝ่ายที่ต้องการสมัคร</h2>
+        <p className="mt-1 text-sm text-gray-500">กรุณาเลือก 1 ฝ่ายก่อนเริ่มกรอกใบสมัคร</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {CORPS_CONFIG.map((c) => {
+          const isSelected = selected === c.value
+          return (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => onSelect(c.value)}
+              className={`
+                flex items-start gap-4 rounded-xl border-2 p-4 text-left transition-all duration-150
+                ${isSelected
+                  ? 'border-ku-green bg-ku-green-50 shadow-md'
+                  : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                }
+              `}
+            >
+              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors
+                ${isSelected ? 'bg-ku-green text-white' : 'bg-gray-100 text-gray-500'}`}>
+                {c.icon}
+              </div>
+              <div className="min-w-0">
+                <p className={`font-semibold leading-tight ${isSelected ? 'text-ku-green' : 'text-gray-800'}`}>
+                  {c.value}
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-gray-500">{c.desc}</p>
+              </div>
+              {isSelected && (
+                <svg className="ml-auto mt-0.5 h-5 w-5 shrink-0 text-ku-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={!selected}
+          className="btn-primary"
+        >
+          เริ่มกรอกใบสมัคร →
+        </button>
+      </div>
+    </div>
+  )
 }
 
 const STEPS: Step[] = [
@@ -188,6 +309,7 @@ function SectionCard({ children }: { children: React.ReactNode }) {
 // ─── Main form ────────────────────────────────────────────────────
 
 export default function ApplicationForm() {
+  const [corpsChosen, setCorpsChosen] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [success, setSuccess]         = useState<SuccessData | null>(null)
   const [savedAt, setSavedAt]         = useState<string | null>(null)
@@ -201,6 +323,7 @@ export default function ApplicationForm() {
     trigger,
     watch,
     getValues,
+    setValue,
     reset,
     formState: { errors, isSubmitting, touchedFields },
   } = useForm<ApplicationFormValues>({
@@ -264,6 +387,7 @@ export default function ApplicationForm() {
 
   const onSubmit = async (data: ApplicationFormValues) => {
     const formData = new FormData()
+    formData.append('corps',      data.corps)
     formData.append('full_name',  data.full_name)
     formData.append('student_id', data.student_id)
     formData.append('faculty',    data.faculty)
@@ -302,6 +426,22 @@ export default function ApplicationForm() {
   // ── Success ────────────────────────────────────────────────────
   if (success) return <SuccessCard data={success} />
 
+  // ── Corps pre-selection ───────────────────────────────────────
+  if (!corpsChosen) {
+    return (
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_256px]">
+        <div>
+          <CorpsPicker
+            selected={watchAll.corps ?? ''}
+            onSelect={(v) => setValue('corps', v)}
+            onConfirm={() => setCorpsChosen(true)}
+          />
+        </div>
+        <FormSidebar savedAt={savedAt} />
+      </div>
+    )
+  }
+
   // ── Form layout ───────────────────────────────────────────────
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_256px]">
@@ -310,6 +450,20 @@ export default function ApplicationForm() {
       <div className="space-y-6 min-w-0">
         {/* Step Indicator */}
         <div className="rounded-xl border border-gray-200 bg-white px-6 py-5 shadow-card">
+          {watchAll.corps && (
+            <div className="mb-3 flex items-center gap-2">
+              <span className="rounded-full bg-ku-green-50 border border-ku-green/20 px-2.5 py-0.5 text-xs font-medium text-ku-green">
+                ฝ่าย: {watchAll.corps}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCorpsChosen(false)}
+                className="text-xs text-gray-400 hover:text-gray-600 underline"
+              >
+                เปลี่ยน
+              </button>
+            </div>
+          )}
           <StepIndicator steps={STEPS} currentStep={currentStep} />
         </div>
 

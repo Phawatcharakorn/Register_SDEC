@@ -52,6 +52,9 @@ export default function ApplicantCard({ application: app }: ApplicantCardProps) 
 
         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
           <span>ปี {app.year} · GPA {app.gpa.toFixed(2)}</span>
+          {app.corps && (
+            <span className="font-medium text-ku-green">ฝ่าย {app.corps}</span>
+          )}
           <span>สมัครเมื่อ {dateFormatter.format(new Date(app.created_at))}</span>
         </div>
       </div>

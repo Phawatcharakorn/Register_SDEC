@@ -17,6 +17,8 @@ const fileSchema = (opts: {
     .refine((f) => opts.allowedTypes.includes(f.type), opts.typeMsg)
 
 export const applicationSchema = z.object({
+  corps: z.string().min(1, 'กรุณาเลือกฝ่ายที่ต้องการ'),
+
   full_name: z
     .string()
     .min(1, 'กรุณากรอกชื่อ-นามสกุล')
@@ -77,6 +79,14 @@ export const applicationSchema = z.object({
 })
 
 export type ApplicationFormValues = z.infer<typeof applicationSchema>
+
+export const CORPS_OPTIONS = [
+  'Marketing',
+  'Event Organizer',
+  'Human Resource Development',
+  'Catering',
+  'อื่นๆ',
+] as const
 
 export const KU_SRIRACHA_FACULTIES = [
   'คณะวิศวกรรมศาสตร์ศรีราชา',
