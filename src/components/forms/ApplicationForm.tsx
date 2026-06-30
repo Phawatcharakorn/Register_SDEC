@@ -4,10 +4,11 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import Link from 'next/link'
 import FileUpload from '@/components/ui/FileUpload'
 import StepIndicator from '@/components/ui/StepIndicator'
+import SuccessCard from '@/components/SuccessCard'
 import type { Step } from '@/components/ui/StepIndicator'
+import type { SuccessData } from '@/components/SuccessCard'
 import { applicationSchema, type ApplicationFormValues, KU_SRIRACHA_FACULTIES } from './schema'
 
 const DRAFT_KEY = 'sdec_draft_v1'
@@ -186,7 +187,7 @@ function SectionCard({ children }: { children: React.ReactNode }) {
 
 export default function ApplicationForm() {
   const [currentStep, setCurrentStep] = useState(1)
-  const [success, setSuccess]         = useState<{ referenceId: string } | null>(null)
+  const [success, setSuccess]         = useState<SuccessData | null>(null)
   const [savedAt, setSavedAt]         = useState<string | null>(null)
   const [confirmed, setConfirmed]     = useState(false)
   const intervalRef                   = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -284,7 +285,12 @@ export default function ApplicationForm() {
       }
 
       localStorage.removeItem(DRAFT_KEY)
-      setSuccess({ referenceId: json.referenceId })
+      setSuccess({
+        referenceId: json.referenceId,
+        fullName:    json.fullName,
+        email:       json.email,
+        submittedAt: json.submittedAt,
+      })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch {
       toast.error('ไม่สามารถเชื่อมต่อได้ กรุณาตรวจสอบอินเทอร์เน็ต')
@@ -292,38 +298,7 @@ export default function ApplicationForm() {
   }
 
   // ── Success ────────────────────────────────────────────────────
-  if (success) {
-    return (
-      <div className="rounded-xl border border-green-200 bg-green-50 p-8 text-center shadow-card">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-          <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h2 className="text-xl font-bold text-green-800">สมัครเรียบร้อยแล้ว!</h2>
-        <p className="mt-2 text-sm text-green-700">
-          ระบบได้รับใบสมัครของคุณแล้ว ทีมงาน SDEC จะตรวจสอบและแจ้งผลผ่านอีเมลที่ให้ไว้
-        </p>
-        <div className="mt-6 rounded-lg border border-green-200 bg-white px-6 py-4">
-          <p className="text-xs text-gray-500">เลขที่อ้างอิง</p>
-          <p className="mt-1 font-mono text-sm font-semibold text-gray-800 break-all">
-            {success.referenceId}
-          </p>
-        </div>
-        <p className="mt-4 text-xs text-gray-400">กรุณาเก็บเลขที่อ้างอิงนี้ไว้สำหรับติดตามสถานะ</p>
-        <Link
-          href={`/status?q=${success.referenceId}`}
-          className="mt-4 inline-flex items-center gap-2 rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          ตรวจสอบสถานะการสมัคร
-        </Link>
-      </div>
-    )
-  }
+  if (success) return <SuccessCard data={success} />
 
   // ── Form layout ───────────────────────────────────────────────
   return (

@@ -12,8 +12,11 @@ export interface ApiError {
 // POST /api/apply
 // ------------------------------------------------------------------
 export interface ApplyResponse {
-  success: true
+  success:     true
   referenceId: string   // uuid of the created application
+  fullName:    string
+  email:       string
+  submittedAt: string   // ISO timestamp
 }
 
 // ------------------------------------------------------------------

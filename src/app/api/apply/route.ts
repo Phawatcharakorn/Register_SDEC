@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { parseAndValidateApply } from '@/lib/validate-apply'
 import { badRequest, conflict, created, serverError, withErrorHandler } from '@/lib/api-response'
+import { sendConfirmationEmail } from '@/lib/email'
 import type { ApplyResponse } from '@/types/api'
 
 export const POST = withErrorHandler(async (req) => {
@@ -91,5 +92,22 @@ export const POST = withErrorHandler(async (req) => {
     return serverError('Failed to save application')
   }
 
-  return created<ApplyResponse>({ success: true, referenceId: application.id })
+  const submittedAt = new Date().toISOString()
+
+  // Fire-and-forget — email failure must not fail the request
+  void sendConfirmationEmail({
+    to:          fields.email,
+    fullName:    fields.full_name,
+    studentId:   fields.student_id,
+    referenceId: application.id,
+    submittedAt,
+  })
+
+  return created<ApplyResponse>({
+    success:     true,
+    referenceId: application.id,
+    fullName:    fields.full_name,
+    email:       fields.email,
+    submittedAt,
+  })
 })
