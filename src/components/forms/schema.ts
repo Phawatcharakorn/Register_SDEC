@@ -58,7 +58,7 @@ export const applicationSchema = z.object({
 
   motivation: z
     .string()
-    .min(50, 'กรุณากรอกแรงจูงใจอย่างน้อย 50 ตัวอักษร')
+    .min(1, 'กรุณากรอกเหตุผลที่อยากเข้าร่วม SDEC')
     .max(3000, 'กรุณากรอกไม่เกิน 3,000 ตัวอักษร'),
 
   photo: fileSchema({
