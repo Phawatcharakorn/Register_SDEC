@@ -33,7 +33,9 @@ export default function DetailClient({ id }: { id: string }) {
   const [app, setApp]         = useState<ApplicationDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [note, setNote]       = useState('')
-  const [saving, setSaving]   = useState(false)
+  const [saving, setSaving]           = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting]       = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -73,6 +75,18 @@ export default function DetailClient({ id }: { id: string }) {
     setSaving(false)
   }
 
+  async function deleteApplication() {
+    setDeleting(true)
+    const res = await fetch(`/api/admin/applications/${id}`, { method: 'DELETE' })
+    if (!res.ok) {
+      toast.error('ลบไม่สำเร็จ กรุณาลองใหม่')
+      setDeleting(false)
+      return
+    }
+    toast.success('ลบใบสมัครเรียบร้อยแล้ว')
+    router.push('/admin/dashboard')
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F9FAFB]">
@@ -86,6 +100,7 @@ export default function DetailClient({ id }: { id: string }) {
   if (!app) return null
 
   return (
+    <>
     <div className="min-h-screen bg-[#F9FAFB] pb-16">
       {/* Top bar */}
       <div className="sticky top-0 z-10 border-b border-gray-200 bg-white shadow-sm">
@@ -256,7 +271,65 @@ export default function DetailClient({ id }: { id: string }) {
             </div>
           )}
         </div>
+        {/* Danger zone */}
+        <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4">
+          <p className="text-sm font-semibold text-red-700 mb-1">Danger Zone</p>
+          <p className="text-xs text-red-500 mb-3">การลบจะลบข้อมูลและไฟล์ทั้งหมด ไม่สามารถกู้คืนได้</p>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:border-red-400"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            ลบใบสมัคร
+          </button>
+        </div>
+
       </div>
     </div>
+
+    {/* Delete confirmation modal */}
+    {showDeleteModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+            <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <h3 className="mb-1 text-base font-bold text-gray-900">ยืนยันการลบ?</h3>
+          <p className="mb-1 text-sm text-gray-600">
+            จะลบใบสมัครของ <span className="font-semibold">{app.full_name}</span> ({app.student_id}) ออกจากระบบ
+          </p>
+          <p className="mb-5 text-xs text-red-500">รวมถึงรูปถ่ายและ Resume — ไม่สามารถกู้คืนได้</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleting}
+              className="flex-1 rounded-lg border border-gray-300 bg-white py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              ยกเลิก
+            </button>
+            <button
+              onClick={deleteApplication}
+              disabled={deleting}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleting && (
+                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              )}
+              {deleting ? 'กำลังลบ…' : 'ลบเลย'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

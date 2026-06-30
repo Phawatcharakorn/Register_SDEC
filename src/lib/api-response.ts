@@ -11,6 +11,11 @@ export function created<T extends object>(data: T) {
   return NextResponse.json(data, { status: 201 })
 }
 
+/** 204 No Content */
+export function noContent() {
+  return new NextResponse(null, { status: 204 })
+}
+
 /** 400 Bad Request — validation failure */
 export function badRequest(error: string, details?: ApiError['details']) {
   return NextResponse.json<ApiError>(

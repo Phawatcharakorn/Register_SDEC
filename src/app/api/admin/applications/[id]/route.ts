@@ -1,6 +1,7 @@
 import { createAdminClient, createSessionClient } from '@/lib/supabase/server'
 import {
   badRequest,
+  noContent,
   notFound,
   ok,
   serverError,
@@ -107,4 +108,50 @@ export const PATCH = withErrorHandler(async (req, ctx) => {
   const data = rawUpdate as Pick<Application, 'id' | 'status' | 'admin_note'>
 
   return ok<UpdateApplicationResponse>({ success: true, data })
+})
+
+// ------------------------------------------------------------------
+// DELETE /api/admin/applications/[id]
+// ------------------------------------------------------------------
+export const DELETE = withErrorHandler(async (_req, ctx) => {
+  const sessionClient = await createSessionClient()
+  const { data: { user } } = await sessionClient.auth.getUser()
+  if (!user) return unauthorized()
+
+  const { id } = await ctx.params
+  const supabase = createAdminClient()
+
+  // 1. Fetch file paths before deleting the row
+  const { data: rawApp, error: fetchErr } = await supabase
+    .from('applications')
+    .select('student_id, photo_url, resume_url')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (fetchErr) throw fetchErr
+  if (!rawApp) return notFound('Application not found')
+
+  const app = rawApp as { student_id: string; photo_url: string | null; resume_url: string | null }
+
+  // 2. Delete files from storage (best-effort, don't fail the request if missing)
+  const removeOps: Promise<unknown>[] = []
+  const photoPath = `${app.student_id}/photo.jpg`
+  const photoPng  = `${app.student_id}/photo.png`
+  const resumePath = app.resume_url ?? `${app.student_id}/resume.pdf`
+
+  removeOps.push(
+    supabase.storage.from('applicant-photos').remove([photoPath, photoPng]),
+    supabase.storage.from('applicant-resumes').remove([resumePath]),
+  )
+  await Promise.allSettled(removeOps)
+
+  // 3. Delete the database row
+  const { error: deleteErr } = await supabase
+    .from('applications')
+    .delete()
+    .eq('id', id)
+
+  if (deleteErr) throw deleteErr
+
+  return noContent()
 })
