@@ -30,6 +30,13 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
   const [data, setData]                 = useState<AdminApplicationsResponse | null>(null)
   const [loading, setLoading]           = useState(true)
 
+  // Settings modal
+  const [showSettings, setShowSettings] = useState(false)
+  const [openDate, setOpenDate]         = useState('')
+  const [closeDate, setCloseDate]       = useState('')
+  const [isOpen, setIsOpen]             = useState(true)
+  const [savingSettings, setSavingSettings] = useState(false)
+
   // Create admin modal
   const [showCreate, setShowCreate]     = useState(false)
   const [newEmail, setNewEmail]         = useState('')
@@ -68,6 +75,31 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
   }, [page, status, debouncedSearch, router])
 
   useEffect(() => { fetchApplications() }, [fetchApplications])
+
+  const openSettingsModal = async () => {
+    const res = await fetch('/api/admin/settings')
+    if (res.ok) {
+      const data = await res.json()
+      setOpenDate(data.open_date  ?? '')
+      setCloseDate(data.close_date ?? '')
+      setIsOpen(data.is_open !== 'false' && data.is_open !== false)
+    }
+    setShowSettings(true)
+  }
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSavingSettings(true)
+    const res = await fetch('/api/admin/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ open_date: openDate, close_date: closeDate, is_open: isOpen }),
+    })
+    setSavingSettings(false)
+    if (!res.ok) { toast.error('บันทึกไม่สำเร็จ'); return }
+    toast.success('อัปเดตการตั้งค่าเรียบร้อยแล้ว')
+    setShowSettings(false)
+  }
 
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -113,6 +145,16 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={openSettingsModal}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              การรับสมัคร
+            </button>
             <button
               onClick={() => setShowCreate(true)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-ku-green/30 bg-ku-green-50 px-3 py-1.5 text-xs font-semibold text-ku-green hover:bg-ku-green-50/80 transition"
@@ -214,6 +256,83 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
         )}
       </div>
     </div>
+
+    {/* Settings modal */}
+    {showSettings && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+          <h3 className="mb-4 text-base font-bold text-gray-900">ตั้งค่าการรับสมัคร</h3>
+          <form onSubmit={handleSaveSettings} className="space-y-4">
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-600">วันเปิดรับสมัคร</label>
+              <input
+                type="text"
+                value={openDate}
+                onChange={(e) => setOpenDate(e.target.value)}
+                placeholder="เช่น 1 กรกฎาคม 2569"
+                className="form-input"
+                disabled={savingSettings}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-600">วันปิดรับสมัคร</label>
+              <input
+                type="text"
+                value={closeDate}
+                onChange={(e) => setCloseDate(e.target.value)}
+                placeholder="เช่น 31 กรกฎาคม 2569"
+                className="form-input"
+                disabled={savingSettings}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-600">สถานะการรับสมัคร</label>
+              <button
+                type="button"
+                onClick={() => setIsOpen((v) => !v)}
+                disabled={savingSettings}
+                className={`flex w-full items-center justify-between rounded-xl border-2 px-4 py-3 transition-all
+                  ${isOpen ? 'border-green-400 bg-green-50' : 'border-gray-200 bg-gray-50'}`}
+              >
+                <span className={`text-sm font-semibold ${isOpen ? 'text-green-700' : 'text-gray-500'}`}>
+                  {isOpen ? 'เปิดรับสมัครอยู่' : 'ปิดรับสมัครแล้ว'}
+                </span>
+                <div className={`relative h-6 w-11 rounded-full transition-colors ${isOpen ? 'bg-green-500' : 'bg-gray-300'}`}>
+                  <div className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${isOpen ? 'translate-x-6' : 'translate-x-1'}`} />
+                </div>
+              </button>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowSettings(false)}
+                disabled={savingSettings}
+                className="flex-1 rounded-lg border border-gray-300 bg-white py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="submit"
+                disabled={savingSettings}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-ku-green py-2.5 text-sm font-semibold text-white hover:bg-ku-green-600 disabled:opacity-50"
+              >
+                {savingSettings && (
+                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                )}
+                {savingSettings ? 'กำลังบันทึก…' : 'บันทึก'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
 
     {/* Create admin modal */}
     {showCreate && (

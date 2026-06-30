@@ -31,12 +31,14 @@ const highlights = [
   },
 ]
 
-// ปรับวันเปิด-ปิดรับสมัครได้ที่นี่
-const OPEN_DATE  = '1 กรกฎาคม 2569'
-const CLOSE_DATE = '31 กรกฎาคม 2569'
-const IS_OPEN    = true
+export interface HeroSettings {
+  open_date:  string
+  close_date: string
+  is_open:    boolean
+}
 
-export default function HeroSection() {
+export default function HeroSection({ settings }: { settings: HeroSettings }) {
+  const { open_date, close_date, is_open } = settings
   return (
     <section className="space-y-5">
       {/* About SDEC */}
@@ -80,12 +82,12 @@ export default function HeroSection() {
           <div>
             <p className="text-xs text-gray-400">ระยะเวลารับสมัคร</p>
             <p className="text-sm font-semibold text-gray-800">
-              {OPEN_DATE} — {CLOSE_DATE}
+              {open_date} — {close_date}
             </p>
           </div>
         </div>
 
-        {IS_OPEN ? (
+        {is_open ? (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 border border-green-200 px-3 py-1 text-xs font-semibold text-green-700">
             <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             กำลังเปิดรับสมัคร

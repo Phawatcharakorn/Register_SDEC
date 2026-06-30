@@ -1,9 +1,28 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import ApplicationForm from '@/components/forms/ApplicationForm'
-import HeroSection from '@/components/HeroSection'
+import HeroSection, { type HeroSettings } from '@/components/HeroSection'
+import { createAdminClient } from '@/lib/supabase/server'
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic'
+
+async function getSettings(): Promise<HeroSettings> {
+  try {
+    const supabase = createAdminClient()
+    const { data } = await supabase.from('settings').select('key, value')
+    const map = Object.fromEntries((data ?? []).map((r: { key: string; value: string }) => [r.key, r.value]))
+    return {
+      open_date:  map.open_date  ?? '1 กรกฎาคม 2569',
+      close_date: map.close_date ?? '31 กรกฎาคม 2569',
+      is_open:    map.is_open !== 'false',
+    }
+  } catch {
+    return { open_date: '1 กรกฎาคม 2569', close_date: '31 กรกฎาคม 2569', is_open: true }
+  }
+}
+
+export default async function HomePage() {
+  const settings = await getSettings()
   return (
     <main className="min-h-screen bg-[#F9FAFB] pb-16">
       {/* Header */}
@@ -85,7 +104,7 @@ export default function HomePage() {
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         {/* Hero Section */}
         <div className="mb-8">
-          <HeroSection />
+          <HeroSection settings={settings} />
         </div>
 
         {/* Page title */}
